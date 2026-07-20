@@ -1,0 +1,282 @@
+=== DEPT AIDS SEM 8 ===
+
+-- CLASS: Dept=AIDS Sem=8 Div=ai --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	24	11	11
+Blank	5	18	18
+ExpectedLTPR	74
+MISSING_PERIODS
+{"day": "Monday", "period": 2, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Monday", "period": 4, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Monday", "period": 5, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Monday", "period": 6, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Tuesday", "period": 1, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Tuesday", "period": 5, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Tuesday", "period": 6, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Neenu Sebastian", "db_teacher": null}
+{"day": "Wednesday", "period": 2, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Neenu Sebastian", "db_teacher": null}
+{"day": "Wednesday", "period": 3, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Thursday", "period": 1, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Neenu Sebastian", "db_teacher": null}
+{"day": "Thursday", "period": 3, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Thursday", "period": 5, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Friday", "period": 2, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+{"day": "Friday", "period": 3, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Neenu Sebastian", "db_teacher": null}
+{"day": "Friday", "period": 4, "gen_subject": "EBOT", "db_subject": null, "gen_teacher": "Dr. Sindhya K. Nambiar", "db_teacher": null}
+EXTRA_DB_OCCUPIED
+{"day": "Wednesday", "period": 5, "db_subject": "PPI", "gen_subject": null}
+{"day": "Thursday", "period": 2, "db_subject": "EBT", "gen_subject": null}
+
+-- CLASS: Dept=AIDS Sem=8 Div=ds --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	15	15
+Blank	0	14	14
+ExpectedLTPR	74
+MISSING_PERIODS
+{"day": "Monday", "period": 2, "gen_subject": "EIDM", "db_subject": null, "gen_teacher": "Ms.Jisna Jaison T", "db_teacher": null}
+{"day": "Tuesday", "period": 4, "gen_subject": "EISC", "db_subject": null, "gen_teacher": "Ms.Asha S Rakesh", "db_teacher": null}
+{"day": "Tuesday", "period": 6, "gen_subject": "DLDS", "db_subject": null, "gen_teacher": "Dr. Sonal Ayyappan", "db_teacher": null}
+{"day": "Wednesday", "period": 3, "gen_subject": "DLDS", "db_subject": null, "gen_teacher": "Dr. Sonal Ayyappan", "db_teacher": null}
+{"day": "Wednesday", "period": 4, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Wednesday", "period": 5, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Thursday", "period": 1, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Thursday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Thursday", "period": 4, "gen_subject": "DLDS", "db_subject": null, "gen_teacher": "Dr. Sonal Ayyappan", "db_teacher": null}
+{"day": "Thursday", "period": 5, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Binu John", "db_teacher": null}
+{"day": "Thursday", "period": 6, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Binu John", "db_teacher": null}
+{"day": "Friday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms.Aiswarya Menon", "db_teacher": null}
+{"day": "Friday", "period": 4, "gen_subject": "DLDS", "db_subject": null, "gen_teacher": "Dr. Sonal Ayyappan", "db_teacher": null}
+{"day": "Friday", "period": 5, "gen_subject": "EBT", "db_subject": null, "gen_teacher": "Ms. Binu John", "db_teacher": null}
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT AIDS SEM 7 ===
+
+-- CLASS: Dept=AIDS Sem=7 Div=ai --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	23	23
+Blank	0	6	6
+ExpectedLTPR	68
+MISSING_PERIODS
+{"day": "Monday", "period": 3, "gen_subject": "DLL", "db_subject": null, "gen_teacher": "Ms. Anita Babu", "db_teacher": null}
+{"day": "Wednesday", "period": 5, "gen_subject": "NDM", "db_subject": null, "gen_teacher": "Dr. Sonal Ayyappan", "db_teacher": null}
+{"day": "Wednesday", "period": 6, "gen_subject": "RPA", "db_subject": null, "gen_teacher": "Ms.Shali Sara Abraham", "db_teacher": null}
+{"day": "Thursday", "period": 2, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Neenu Sebastian", "db_teacher": null}
+{"day": "Thursday", "period": 6, "gen_subject": "ISE", "db_subject": null, "gen_teacher": "Ms. Binu John", "db_teacher": null}
+{"day": "Friday", "period": 5, "gen_subject": "RPA", "db_subject": null, "gen_teacher": "Ms.Shali Sara Abraham", "db_teacher": null}
+EXTRA_DB_OCCUPIED	NONE
+
+-- CLASS: Dept=AIDS Sem=7 Div=ds --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	68
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT AU SEM 8 ===
+
+-- CLASS: Dept=AU Sem=8 Div=AUTO --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	73
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT AU SEM 7 ===
+
+-- CLASS: Dept=AU Sem=7 Div=AUTO --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	56
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT CE SEM 8 ===
+
+-- CLASS: Dept=CE Sem=8 Div=CIVIL --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	73
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT CE SEM 7 ===
+
+-- CLASS: Dept=CE Sem=7 Div=CIVIL --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	68
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT CS SEM 8 ===
+
+-- CLASS: Dept=CS Sem=8 Div=CS1 --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	28	28
+Blank	0	1	1
+ExpectedLTPR	31
+MISSING_PERIODS
+{"day": "Tuesday", "period": 3, "gen_subject": "PEVI", "db_subject": null, "gen_teacher": "Dr. Deepa K.", "db_teacher": null}
+EXTRA_DB_OCCUPIED	NONE
+
+-- CLASS: Dept=CS Sem=8 Div=CS2 --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	31
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+
+-- CLASS: Dept=CS Sem=8 Div=CS3 --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	31
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT CS SEM 7 ===
+
+-- CLASS: Dept=CS Sem=7 Div=CS1 --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	15	12	12
+Blank	14	17	17
+ExpectedLTPR	107
+MISSING_PERIODS
+{"day": "Tuesday", "period": 2, "gen_subject": "PEIC2", "db_subject": null, "gen_teacher": "Ms. Julie Siby", "db_teacher": null}
+{"day": "Tuesday", "period": 3, "gen_subject": "PEIL", "db_subject": null, "gen_teacher": "Dr. Gokul G .N", "db_teacher": null}
+{"day": "Tuesday", "period": 5, "gen_subject": "PEIC2", "db_subject": null, "gen_teacher": "Ms. Julie Siby", "db_teacher": null}
+{"day": "Tuesday", "period": 6, "gen_subject": "PEIC1", "db_subject": null, "gen_teacher": "Mr. Safeer P S", "db_teacher": null}
+{"day": "Friday", "period": 1, "gen_subject": "CSQ", "db_subject": null, "gen_teacher": "Dr. Manish T I", "db_teacher": null}
+{"day": "Friday", "period": 2, "gen_subject": "CSQ", "db_subject": null, "gen_teacher": "Dr. Manish T I", "db_teacher": null}
+{"day": "Friday", "period": 3, "gen_subject": "CSQ", "db_subject": null, "gen_teacher": "Dr. Manish T I", "db_teacher": null}
+EXTRA_DB_OCCUPIED
+{"day": "Monday", "period": 3, "db_subject": "PEIL", "gen_subject": null}
+{"day": "Wednesday", "period": 2, "db_subject": "PEIC2", "gen_subject": null}
+{"day": "Thursday", "period": 2, "db_subject": "AI", "gen_subject": null}
+{"day": "Thursday", "period": 4, "db_subject": "PEIC2", "gen_subject": null}
+
+-- CLASS: Dept=CS Sem=7 Div=CS2 --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	18	12	12
+Blank	11	17	17
+ExpectedLTPR	107
+MISSING_PERIODS
+{"day": "Monday", "period": 6, "gen_subject": "PEIC1", "db_subject": null, "gen_teacher": "Mr. Subin P. S.", "db_teacher": null}
+{"day": "Tuesday", "period": 2, "gen_subject": "PEIC2", "db_subject": null, "gen_teacher": "Mr. Anoop Jose", "db_teacher": null}
+{"day": "Tuesday", "period": 3, "gen_subject": "PEIL", "db_subject": null, "gen_teacher": "Dr. Noora V. T.", "db_teacher": null}
+{"day": "Tuesday", "period": 4, "gen_subject": "AI", "db_subject": null, "gen_teacher": "Dr. Deepa K.", "db_teacher": null}
+{"day": "Tuesday", "period": 5, "gen_subject": "PEIC2", "db_subject": null, "gen_teacher": "Mr. Anoop Jose", "db_teacher": null}
+{"day": "Wednesday", "period": 1, "gen_subject": "CSQ", "db_subject": null, "gen_teacher": "Dr. Manish T I", "db_teacher": null}
+{"day": "Wednesday", "period": 3, "gen_subject": "CSQ", "db_subject": null, "gen_teacher": "Dr. Manish T I", "db_teacher": null}
+{"day": "Wednesday", "period": 6, "gen_subject": "ISE", "db_subject": null, "gen_teacher": "Ms. Smera Thomas", "db_teacher": null}
+{"day": "Thursday", "period": 3, "gen_subject": "CSQ", "db_subject": null, "gen_teacher": "Dr. Manish T I", "db_teacher": null}
+EXTRA_DB_OCCUPIED
+{"day": "Monday", "period": 3, "db_subject": "PEIL", "gen_subject": null}
+{"day": "Wednesday", "period": 4, "db_subject": "PEIC1", "gen_subject": null}
+{"day": "Thursday", "period": 4, "db_subject": "PEIC2", "gen_subject": null}
+
+-- CLASS: Dept=CS Sem=7 Div=CS3 --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	21	15	15
+Blank	8	14	14
+ExpectedLTPR	107
+MISSING_PERIODS
+{"day": "Tuesday", "period": 2, "gen_subject": "PEIC2", "db_subject": null, "gen_teacher": "Ms. Annamol Eldho", "db_teacher": null}
+{"day": "Tuesday", "period": 3, "gen_subject": "PEIL", "db_subject": null, "gen_teacher": "Ms. Bini Omman", "db_teacher": null}
+{"day": "Wednesday", "period": 1, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Litty Koshy", "db_teacher": null}
+{"day": "Wednesday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Litty Koshy", "db_teacher": null}
+{"day": "Thursday", "period": 2, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Litty Koshy", "db_teacher": null}
+{"day": "Thursday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Litty Koshy", "db_teacher": null}
+{"day": "Friday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Litty Koshy", "db_teacher": null}
+EXTRA_DB_OCCUPIED
+{"day": "Monday", "period": 3, "db_subject": "PEIL", "gen_subject": null}
+=== DEPT EC SEM 8 ===
+
+-- CLASS: Dept=EC Sem=8 Div=EC --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	73
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT EC SEM 7 ===
+
+-- CLASS: Dept=EC Sem=7 Div=EC --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	68
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT EEE SEM 8 ===
+
+-- CLASS: Dept=EEE Sem=8 Div=EEE --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	24	24
+Blank	0	5	5
+ExpectedLTPR	73
+MISSING_PERIODS
+{"day": "Tuesday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Dr. Jayanand B.", "db_teacher": null}
+{"day": "Wednesday", "period": 5, "gen_subject": "ESDE", "db_subject": null, "gen_teacher": "Dr. Divya Nath K.", "db_teacher": null}
+{"day": "Wednesday", "period": 6, "gen_subject": "SEM", "db_subject": null, "gen_teacher": "Mr. Varun Jose", "db_teacher": null}
+{"day": "Friday", "period": 3, "gen_subject": "ESDE", "db_subject": null, "gen_teacher": "Dr. Divya Nath K.", "db_teacher": null}
+{"day": "Friday", "period": 4, "gen_subject": "SEM", "db_subject": null, "gen_teacher": "Mr. Varun Jose", "db_teacher": null}
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT EEE SEM 7 ===
+
+-- CLASS: Dept=EEE Sem=7 Div=EEE --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	15	15
+Blank	0	14	14
+ExpectedLTPR	68
+MISSING_PERIODS
+{"day": "Monday", "period": 1, "gen_subject": "CSL", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Monday", "period": 2, "gen_subject": "CSL", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Monday", "period": 3, "gen_subject": "CSL", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Tuesday", "period": 1, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Tuesday", "period": 2, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Tuesday", "period": 3, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Tuesday", "period": 4, "gen_subject": "IT", "db_subject": null, "gen_teacher": "Mr. Varun Jose", "db_teacher": null}
+{"day": "Tuesday", "period": 5, "gen_subject": "ISE", "db_subject": null, "gen_teacher": "Dr. Jayanand B.", "db_teacher": null}
+{"day": "Tuesday", "period": 6, "gen_subject": "NDM", "db_subject": null, "gen_teacher": "Dr. Divya Nath K.", "db_teacher": null}
+{"day": "Wednesday", "period": 1, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Wednesday", "period": 2, "gen_subject": "PPI", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+{"day": "Wednesday", "period": 6, "gen_subject": "ISE", "db_subject": null, "gen_teacher": "Dr. Jayanand B.", "db_teacher": null}
+{"day": "Thursday", "period": 5, "gen_subject": "ISE", "db_subject": null, "gen_teacher": "Dr. Jayanand B.", "db_teacher": null}
+{"day": "Thursday", "period": 6, "gen_subject": "ACS", "db_subject": null, "gen_teacher": "Ms. Priya Venugopal", "db_teacher": null}
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT ME SEM 8 ===
+
+-- CLASS: Dept=ME Sem=8 Div=ME --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	73
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE
+=== DEPT ME SEM 7 ===
+
+-- CLASS: Dept=ME Sem=7 Div=ME --
+TotalSlots	Generator	DB	Frontend
+Occupied	29	29	29
+Filled	29	29	29
+Blank	0	0	0
+ExpectedLTPR	56
+MISSING_PERIODS	NONE
+EXTRA_DB_OCCUPIED	NONE

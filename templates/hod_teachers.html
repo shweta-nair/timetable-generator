@@ -1,0 +1,125 @@
+{% extends "hod_base.html" %}
+{% block title %}Department Teachers{% endblock %}
+
+{% block extra_head %}
+<style>
+  .teacher-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+  .teacher-card { background:#fff; border:1px solid #d1fae5; border-radius:10px; padding:18px; }
+  .teacher-card .tc-header { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+  .teacher-card .avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#0b5ed7,#6ea8ff); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; font-weight:700; flex-shrink:0; }
+  .teacher-card .tc-name { font-weight:700; color:#0b5ed7; font-size:15px; }
+  .teacher-card .tc-desig { font-size:12px; color:#64748b; margin-top:2px; }
+  .meta-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:#fff; border-radius:12px; padding:28px; width:480px; max-width:95vw; }
+  .modal h3 { margin:0 0 20px; color:#0b5ed7; }
+  .form-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">Teachers — {{ dept.name }}</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+  <p style="color:#64748b;margin:0;font-size:13px;">{{ teachers|length }} teacher(s) in your department</p>
+  <button class="btn btn-primary" onclick="document.getElementById('addModal').classList.add('show')">Add Teacher</button>
+</div>
+
+<div class="teacher-grid">
+{% for t in teachers %}
+<div class="teacher-card">
+  <div class="tc-header">
+    <div class="avatar">{{ (t.name or '?')[0]|upper }}</div>
+    <div>
+      <div class="tc-name">{{ t.name }}</div>
+      <div class="tc-desig">{{ t.designation or 'N/A' }}</div>
+    </div>
+  </div>
+  <div class="meta-row">
+    <span class="badge badge-blue">{{ t.seniority_level or '—' }} seniority</span>
+    {% if t.auth %}<span class="badge badge-{{ 'green' if t.auth.role=='hod' else 'gray' }}">{{ t.auth.role }}</span>{% endif %}
+  </div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:12px;">
+    <b>Specialization:</b> {{ t.area_of_specialization or '—' }}<br>
+    <b>Login:</b> {{ t.auth.username if t.auth else 'none' }}
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px;"
+      onclick="openEdit('{{ t.id }}','{{ t.name|replace("'","\\'")|e }}','{{ t.designation or '' }}','{{ t.seniority_level or '' }}','{{ t.area_of_specialization|replace("'","\\'")|e }}')">
+      Edit
+    </button>
+    {% if t.auth and t.auth.role != 'hod' %}
+    <form method="POST" action="/hod/teacher/delete/{{ t.id }}" style="margin:0;"
+          onsubmit="return confirm('Permanently delete {{ t.name }}? This cannot be undone.')">
+      <button type="submit" class="btn" style="font-size:12px;padding:6px 14px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>Edit Teacher</h3>
+    <form method="POST" id="editForm">
+      <div class="form-group"><label>Name</label><input name="name" id="eName" required></div>
+      <div class="form-group"><label>Designation</label>
+        <select name="designation" id="eDesig">
+          <option>Professor</option><option>Associate Professor</option>
+          <option>Assistant Professor</option><option>Lecturer</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Seniority Level</label><input name="seniority_level" id="eSen" placeholder="1–10"></div>
+      <div class="form-group"><label>Area of Specialization</label><input name="area_of_specialization" id="eArea"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+        <button type="button" class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD TEACHER MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Add New Teacher</h3>
+    <form method="POST" action="{{ url_for('hod_teacher_add') }}">
+      <div class="form-group"><label>Full Name *</label><input name="name" required placeholder="e.g. Dr. Ravi Kumar"></div>
+      <div class="form-group"><label>Designation</label>
+        <select name="designation">
+          <option>Professor</option><option selected>Associate Professor</option>
+          <option>Assistant Professor</option><option>Lecturer</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Seniority Level</label><input name="seniority_level" placeholder="1–10"></div>
+      <div class="form-group"><label>Area of Specialization</label><input name="area_of_specialization"></div>
+      <div style="background:#e9f2ff;border-radius:6px;padding:10px;font-size:12px;color:#334155;margin-bottom:14px;">
+        Login credentials will be auto-generated from the teacher's first name.
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addModal').classList.remove('show')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Teacher</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEdit(id,name,desig,sen,area){
+  document.getElementById('editForm').action='/hod/teacher/edit/'+id;
+  document.getElementById('eName').value=name;
+  document.getElementById('eSen').value=sen;
+  document.getElementById('eArea').value=area;
+  const d=document.getElementById('eDesig');
+  for(let o of d.options) if(o.value===desig){o.selected=true;break;}
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('show');}
+document.getElementById('editModal').addEventListener('click',e=>{if(e.target.id==='editModal')closeEdit();});
+document.getElementById('addModal').addEventListener('click',e=>{if(e.target.id==='addModal')document.getElementById('addModal').classList.remove('show');});
+</script>
+{% endblock %}

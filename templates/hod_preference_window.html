@@ -1,0 +1,273 @@
+{% extends "hod_base.html" %}
+{% block title %}Preference Window{% endblock %}
+
+{% block extra_head %}
+<style>
+  .win-panel { border-radius:12px; padding:22px; margin-bottom:24px; }
+  .win-open-panel   { background:#f5f9ff; border:1.5px solid #a3c4f3; }
+  .win-closed-panel { background:#f9fafb; border:1.5px solid #d1d5db; }
+  .win-panel h2 { margin:0 0 8px; font-size:18px; }
+  .win-panel .sub { font-size:13px; color:#334155; margin-bottom:16px; }
+  .ctrl-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+  .ctrl-row .form-group { display:flex; flex-direction:column; gap:4px; min-width:180px; }
+  .status-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .status-table thead th { background:#eef4ff; padding:8px 10px; text-align:left; border-bottom:1.5px solid #c7d8f8; }
+  .status-table tbody tr:hover { background:#f8faff; }
+  .status-table td { padding:8px 10px; vertical-align:top; border-bottom:1px solid #f1f5f9; }
+  .pref-chip { display:inline-block; background:#dbeafe; color:#1e40af; border-radius:8px; padding:2px 8px; font-size:11px; font-weight:700; margin:1px; }
+  .count-ok  { color:#059669; font-weight:700; }
+  .count-bad { color:#dc2626; font-weight:700; }
+  .my-prefs-card { background:#fff; border:1.5px solid #d1fae5; border-radius:12px; padding:22px; margin-bottom:24px; }
+  .my-prefs-card h3 { margin:0 0 14px; color:#065f46; font-size:17px; }
+  .sem-group { margin-bottom:18px; border:1px solid #e2e8f0; border-radius:8px; padding:14px; background:#f8fafc; }
+  .sem-group h4 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .sem-group select { width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; }
+  /* Inline edit panel */
+  .edit-panel { display:none; background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:14px; margin-top:8px; }
+  .edit-panel.open { display:block; }
+  .edit-panel h5 { margin:0 0 10px; font-size:13px; color:#1e40af; }
+  .edit-panel .pref-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .edit-panel .pref-row label { font-size:12px; color:#475569; min-width:80px; }
+  .edit-panel .pref-row select { flex:1; min-width:200px; font-size:12px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:5px; }
+  .edit-btn { font-size:12px; padding:4px 10px; border-radius:6px; cursor:pointer; border:1px solid #93c5fd; background:#eff6ff; color:#1d4ed8; }
+  .edit-btn:hover { background:#dbeafe; }
+  .save-pref-btn { font-size:12px; padding:5px 14px; border-radius:6px; background:#2563eb; color:#fff; border:none; cursor:pointer; }
+  .save-pref-btn:hover { background:#1d4ed8; }
+  .cancel-btn { font-size:12px; padding:5px 10px; border-radius:6px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; cursor:pointer; }
+  .sem-tab-bar { display:flex; gap:6px; margin-bottom:10px; }
+  .sem-tab { font-size:11px; padding:3px 10px; border-radius:5px; cursor:pointer; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; }
+  .sem-tab.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if show_my_prefs %}
+{# ── HOD My-Preferences page ── #}
+<div class="page-title">My Subject Preferences — {{ sem_type.title() }} Semester</div>
+<div class="my-prefs-card">
+  {% if hod_prefs %}
+  <p style="font-size:13px;color:#334155;margin-bottom:14px;">Your current {{ sem_type }} semester preferences:</p>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
+    {% for p in hod_prefs %}<span class="pref-chip">Rank {{ p.rank }} &bull; Sem {{ p.semester }} &bull; {{ p.course_code }}</span>{% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#94a3b8;margin-bottom:14px;font-size:13px;">You have not yet submitted preferences for {{ sem_type }} semesters.</p>
+  {% endif %}
+
+  <h3>Update My Preferences</h3>
+  <form method="POST" action="{{ url_for('hod_my_preferences') }}">
+    {% for i in range(1,4) %}
+    <div class="sem-group">
+      <h4>Preference {{ i }}</h4>
+      <select name="pref_{{ i }}" required>
+        <option value="">-- Select a course --</option>
+        {% for sem, courses in hod_courses_by_sem.items()|sort %}
+        <optgroup label="Semester {{ sem }}">
+          {% for c in courses %}
+          <option value="{{ c.code }}" {% if hod_prefs|selectattr('rank','equalto',i)|selectattr('course_code','equalto',c.code)|list %}selected{% endif %}>
+            Sem {{ sem }} — {{ c.name }} ({{ c.code }})
+          </option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:6px;">Save My Preferences</button>
+  </form>
+</div>
+
+{% else %}
+{# ── Normal Preference Window management page ── #}
+<div class="page-title">Preference Submission Window — {{ sem_type.title() }} Semester</div>
+<div style="margin-bottom:16px;">
+  <a href="{{ url_for('hod_my_preferences') }}" class="btn btn-secondary" style="font-size:13px;">My Own Preferences</a>
+</div>
+
+{% if pref_window and pref_window.is_currently_open() %}
+<div class="win-panel win-open-panel">
+  <h2>Window is Currently OPEN</h2>
+  <p class="sub">
+    Teachers in your department can currently submit their subject preferences.<br>
+    {% if pref_window.open_until %}
+    Closes: <strong>{{ pref_window.open_until.strftime('%d %b %Y %H:%M') }} UTC</strong>
+    {% endif %}
+  </p>
+  <form method="POST" action="{{ url_for('hod_preference_window') }}" style="display:inline;">
+    <input type="hidden" name="action" value="close">
+    <button type="submit" class="btn btn-danger" onclick="return confirm('Close the preference window early?')">
+      Close Window Early
+    </button>
+  </form>
+</div>
+{% else %}
+<div class="win-panel win-closed-panel">
+  <h2>Window is Currently CLOSED</h2>
+  <p class="sub">Open the window to allow teachers to submit their {{ sem_type }} semester subject preferences.</p>
+  <form method="POST" action="{{ url_for('hod_preference_window') }}">
+    <input type="hidden" name="action" value="open">
+    <div class="ctrl-row">
+      <div class="form-group">
+        <label>Duration</label>
+        <select name="duration_hours">
+          <option value="24">24 hours (1 day)</option>
+          <option value="48" selected>48 hours (2 days)</option>
+          <option value="72">72 hours (3 days)</option>
+          <option value="168">168 hours (1 week)</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Open Preference Window</button>
+    </div>
+    <p style="margin:8px 0 0;font-size:12px;color:#64748b;">
+      An in-app notification (+ email if configured) will be sent to all department teachers.
+    </p>
+  </form>
+</div>
+{% endif %}
+
+<!-- Teacher preference status table -->
+<div class="card">
+  <h3>Teacher Preference Status</h3>
+  <p style="font-size:12px;color:#64748b;margin-bottom:14px;">
+    Each teacher must have 3 odd-semester preferences and 3 even-semester preferences.
+    As HOD you can edit any teacher's preferences directly below.
+  </p>
+  <table class="status-table">
+    <thead>
+      <tr>
+        <th>Teacher</th>
+        <th>Designation</th>
+        <th>Odd Prefs</th>
+        <th>Even Prefs</th>
+        <th>Current Preferences</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for item in pref_status %}
+    {% set t = item.teacher %}
+    <tr>
+      <td><strong>{{ t.name }}</strong></td>
+      <td>{{ t.designation or '—' }}</td>
+      <td class="{{ 'count-ok' if item.odd_count==3 else 'count-bad' }}">
+        {{ item.odd_count }}/3
+      </td>
+      <td class="{{ 'count-ok' if item.even_count==3 else 'count-bad' }}">
+        {{ item.even_count }}/3
+      </td>
+      <td>
+        {% if item.odd_prefs %}
+          <div style="margin-bottom:4px;"><span style="font-size:10px;color:#6366f1;font-weight:600;">ODD:</span>
+          {% for p in item.odd_prefs %}
+            <span class="pref-chip" style="background:#ede9fe;color:#5b21b6;">S{{ p.semester }}:{{ p.course_code }}(#{{ p.rank }})</span>
+          {% endfor %}</div>
+        {% endif %}
+        {% if item.even_prefs %}
+          <div><span style="font-size:10px;color:#d97706;font-weight:600;">EVEN:</span>
+          {% for p in item.even_prefs %}
+            <span class="pref-chip" style="background:#fef3c7;color:#92400e;">S{{ p.semester }}:{{ p.course_code }}(#{{ p.rank }})</span>
+          {% endfor %}</div>
+        {% endif %}
+        {% if not item.prefs %}
+          <span style="color:#94a3b8;font-size:12px;">None submitted</span>
+        {% endif %}
+      </td>
+      <td>
+        <button class="edit-btn" onclick="toggleEdit('{{ t.id }}')">Edit Prefs</button>
+      </td>
+    </tr>
+    <!-- Inline edit row -->
+    <tr id="edit-row-{{ t.id }}" style="display:none;">
+      <td colspan="6" style="padding:0;">
+        <div class="edit-panel open" style="margin:4px 0 10px 8px;">
+          <h5>Edit preferences for {{ t.name }}</h5>
+          <div class="sem-tab-bar">
+            <button type="button" class="sem-tab active" onclick="switchSemTab('{{ t.id }}','odd',this)">Odd Semesters (S1/3/5/7)</button>
+            <button type="button" class="sem-tab" onclick="switchSemTab('{{ t.id }}','even',this)">Even Semesters (S2/4/6/8)</button>
+          </div>
+
+          <!-- Odd semester form -->
+          <div id="form-odd-{{ t.id }}">
+            <form method="POST" action="{{ url_for('hod_update_teacher_preference', teacher_id=t.id) }}">
+              <input type="hidden" name="sem_type" value="odd">
+              {% for i in [1,2,3] %}
+              <div class="pref-row">
+                <label>Preference {{ i }}</label>
+                <select name="pref_{{ i }}" required>
+                  <option value="">— Select odd-sem subject —</option>
+                  {% for sem, courses in odd_courses_by_sem.items()|sort %}
+                  <optgroup label="Semester {{ sem }}">
+                    {% for c in courses %}
+                    <option value="{{ c.code }}"
+                      {% if item.odd_prefs|length >= i and item.odd_prefs[i-1].course_code == c.code %}selected{% endif %}>
+                      S{{ sem }} — {{ c.name }} ({{ c.code }})
+                    </option>
+                    {% endfor %}
+                  </optgroup>
+                  {% endfor %}
+                </select>
+              </div>
+              {% endfor %}
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button type="submit" class="save-pref-btn">Save Odd Prefs</button>
+                <button type="button" class="cancel-btn" onclick="toggleEdit('{{ t.id }}')">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Even semester form -->
+          <div id="form-even-{{ t.id }}" style="display:none;">
+            <form method="POST" action="{{ url_for('hod_update_teacher_preference', teacher_id=t.id) }}">
+              <input type="hidden" name="sem_type" value="even">
+              {% for i in [1,2,3] %}
+              <div class="pref-row">
+                <label>Preference {{ i }}</label>
+                <select name="pref_{{ i }}" required>
+                  <option value="">— Select even-sem subject —</option>
+                  {% for sem, courses in even_courses_by_sem.items()|sort %}
+                  <optgroup label="Semester {{ sem }}">
+                    {% for c in courses %}
+                    <option value="{{ c.code }}"
+                      {% if item.even_prefs|length >= i and item.even_prefs[i-1].course_code == c.code %}selected{% endif %}>
+                      S{{ sem }} — {{ c.name }} ({{ c.code }})
+                    </option>
+                    {% endfor %}
+                  </optgroup>
+                  {% endfor %}
+                </select>
+              </div>
+              {% endfor %}
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button type="submit" class="save-pref-btn">Save Even Prefs</button>
+                <button type="button" class="cancel-btn" onclick="toggleEdit('{{ t.id }}')">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+function toggleEdit(tid) {
+  const row = document.getElementById('edit-row-' + tid);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function switchSemTab(tid, semType, btn) {
+  // Update tab highlight
+  btn.closest('.sem-tab-bar').querySelectorAll('.sem-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // Show/hide forms
+  document.getElementById('form-odd-' + tid).style.display  = semType === 'odd'  ? 'block' : 'none';
+  document.getElementById('form-even-' + tid).style.display = semType === 'even' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

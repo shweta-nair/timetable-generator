@@ -1,0 +1,151 @@
+{% extends "hod_base.html" %}
+{% block title %}Manage Subjects{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filter-row { display:flex; gap:12px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+  .filter-row input { max-width:240px; }
+  .type-badge { font-size:11px; font-weight:800; padding:2px 8px; border-radius:0; background:#f1f5f9; color:#475569; border:1px solid rgba(0,0,0,0.10);
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.55), inset -1px -1px 0 rgba(0,0,0,0.12); }
+  .type-badge.lab  { background:#dbeafe; color:#1e40af; }
+  .type-badge.elective { background:#fef9c3; color:#854d0e; }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:#fff; border-radius:0; padding:28px; width:520px; max-width:95vw; max-height:90vh; overflow-y:auto;
+    border:1px solid rgba(0,0,0,0.12); box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.22); }
+  .modal h3 { margin:0 0 20px; color:#0b5ed7; font-size:17px; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  .form-group.full { grid-column:1/-1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">Subjects — {{ dept.name }}</div>
+
+<div class="filter-row">
+  <input type="text" id="searchInput" placeholder="Search course name or code…" oninput="filterTable(this.value)">
+  <select id="semFilter" onchange="filterTable(document.getElementById('searchInput').value)">
+    <option value="">All Semesters</option>
+    {% for s in range(1,9) %}<option value="{{ s }}">Semester {{ s }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-primary" onclick="openAddModal()">+ Add Course</button>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden;">
+<table id="courseTable">
+  <thead>
+    <tr>
+      <th>Code</th><th>Name</th><th>Sem</th><th>Type</th><th>LTPR</th><th>Teacher Dept</th><th style="width:110px;">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in courses %}
+  <tr data-name="{{ c.name|lower }}" data-code="{{ c.code|lower }}" data-sem="{{ c.semester }}">
+    <td><code style="background:#f5f9ff;padding:2px 6px;border-radius:4px;font-size:12px;">{{ c.code }}</code></td>
+    <td>{{ c.name }}</td>
+    <td><span class="badge badge-blue">{{ c.semester }}</span></td>
+    <td>
+      {% set t = (c.type or '')|lower %}
+      <span class="type-badge {% if 'lab' in t %}lab{% elif 'elective' in t or 'pec' in t %}elective{% endif %}">{{ c.type or '—' }}</span>
+    </td>
+    <td><code style="font-size:12px;">{{ c.hours_per_week or '—' }}</code></td>
+    <td>{{ c.dept_id or '—' }}</td>
+    <td style="white-space:nowrap;">
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px;"
+        onclick="openEditModal({{ c.id }},'{{ c.name|replace("'","\\'")|e }}','{{ c.hours_per_week or '' }}','{{ c.type or '' }}','{{ c.dept_id or '' }}')">Edit</button>
+      <form method="POST" action="{{ url_for('hod_course_delete', course_id=c.id) }}" style="display:inline;"
+        onsubmit="return confirm('Delete {{ c.name }}?')">
+        <button type="submit" class="btn btn-danger" style="padding:5px 10px;font-size:11px;">Del</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Add Course</h3>
+    <form method="POST" action="{{ url_for('hod_course_add') }}">
+      <div class="form-grid">
+        <div class="form-group"><label>Course Code *</label><input name="code" required placeholder="e.g. CS301"></div>
+        <div class="form-group"><label>Semester *</label>
+          <select name="semester" required>
+            {% for s in range(1,9) %}<option value="{{ s }}">Semester {{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group full"><label>Course Name *</label><input name="name" required placeholder="e.g. Data Structures"></div>
+        <div class="form-group"><label>Type</label>
+          <select name="type">
+            <option value="CORE">CORE</option>
+            <option value="LAB">LAB</option>
+            <option value="ELECTIVE">ELECTIVE</option>
+            <option value="PEC">PEC (Elective)</option>
+            <option value="placement">Placement</option>
+          </select>
+        </div>
+        <div class="form-group"><label>LTPR (e.g. 3-1-2-1)</label><input name="hours_per_week" placeholder="3-1-0-1"></div>
+        <div class="form-group"><label>Teaching Dept (dept_id)</label><input name="dept_id" value="{{ dept.id }}"></div>
+        <div class="form-group"><label>Divisions (e.g. CS1,CS2)</label><input name="division" placeholder="CS1,CS2"></div>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Course</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>✏️ Edit Course</h3>
+    <form method="POST" id="editForm">
+      <div class="form-grid">
+        <div class="form-group full"><label>Course Name *</label><input name="name" id="editName" required></div>
+        <div class="form-group"><label>LTPR (hours_per_week)</label><input name="hours_per_week" id="editLTPR" placeholder="3-1-2-1"></div>
+        <div class="form-group"><label>Type</label>
+          <select name="type" id="editType">
+            <option value="CORE">CORE</option><option value="LAB">LAB</option>
+            <option value="ELECTIVE">ELECTIVE</option><option value="PEC">PEC</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Teaching Dept (dept_id)</label><input name="dept_id" id="editDeptId"></div>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterTable(q){
+  q=q.toLowerCase();
+  const sem=document.getElementById('semFilter').value;
+  document.querySelectorAll('#courseTable tbody tr').forEach(r=>{
+    const matchQ=!q||(r.dataset.name+r.dataset.code).includes(q);
+    const matchS=!sem||r.dataset.sem===sem;
+    r.style.display=(matchQ&&matchS)?'':'none';
+  });
+}
+function openAddModal(){document.getElementById('addModal').classList.add('show');}
+function closeAddModal(){document.getElementById('addModal').classList.remove('show');}
+function openEditModal(id,name,ltpr,type,deptId){
+  document.getElementById('editForm').action='/hod/course/edit/'+id;
+  document.getElementById('editName').value=name;
+  document.getElementById('editLTPR').value=ltpr;
+  document.getElementById('editType').value=type||'CORE';
+  document.getElementById('editDeptId').value=deptId;
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('show');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+</script>
+{% endblock %}

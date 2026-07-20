@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timetable Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f4f6f9; color: #333; min-height: 100vh; }
+        .topbar {
+            background: #ffffff;
+            padding: 16px 32px; display: flex; align-items: center; gap: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .topbar h1 { font-size: 20px; font-weight: 700; color: #0b5ed7; }
+        .topbar span { color: #666; font-size: 14px; }
+        .topbar a { color: #555; text-decoration: none; font-size: 13px; margin-left: auto; }
+        .tabs { display: flex; gap: 4px; padding: 20px 32px 0; border-bottom: 1px solid #e2e8f0; }
+        .tab {
+            padding: 10px 24px; border-radius: 8px 8px 0 0;
+            cursor: pointer; font-size: 14px; font-weight: bold;
+            color: #555; background: #f5f9ff;
+            border: 1px solid #e2e8f0; border-bottom: none;
+            transition: all .2s;
+        }
+        .tab.active { background: #ffffff; color: #0b5ed7; border-color: #e2e8f0; box-shadow: 0 -2px 0 #0b5ed7 inset; }
+        .content { padding: 24px 32px; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .selector-row { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+        select {
+            padding: 10px 14px; background: #ffffff;
+            border: 1px solid #cbd5e1; border-radius: 8px;
+            color: #0f172a; font-size: 13px;
+        }
+        select option { background: #ffffff; }
+        .dl-btn {
+            padding: 10px 18px;
+            background: #0b5ed7;
+            color: white; border: none; border-radius: 8px;
+            font-size: 13px; font-weight: bold; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .dl-btn:hover { background: #094eb3; }
+
+        /* Timetable grid */
+        .tt-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow-x: auto; display: block; }
+        .tt-table th {
+            background: #e9f2ff; color: #0b5ed7; padding: 8px 10px;
+            text-align: center; font-weight: bold; border: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        .tt-table td {
+            padding: 8px 10px; border: 1px solid #e2e8f0;
+            text-align: center; white-space: nowrap; min-width: 80px;
+        }
+        .tt-table tr:nth-child(even) td { background: #fafafa; }
+        .tt-table tr:nth-child(odd) td  { background: #ffffff; }
+        .day-cell { font-weight: bold; color: #0b5ed7; background: #f4f6f9 !important; }
+        .subj-cell { color: #0f172a; font-size: 11px; }
+        .subj-name { font-weight: 600; color: #0f172a; }
+        .teacher-name { color: #475569; font-size: 10px; }
+        .free-cell { color: #cbd5e1; }
+        .remedial-cell { background: #fef08a !important; color: #a16207 !important; font-size: 10px; }
+        .lunch-row td { background: #fef08a !important; color: #a16207; font-size: 11px; font-weight: 600; text-align: center; }
+        .flash-msg { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+        .flash-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .flash-error   { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .empty-msg { color: #475569; text-align: center; padding: 40px; font-size: 14px; }
+        #currentDlLink { display: none; }
+    </style>
+</head>
+<body class="topnav-layout">
+
+<style>
+  /* Topbar as glass header (appearance only) */
+  body.topnav-layout .topbar{
+    background: rgba(255,255,255,0.58);
+    backdrop-filter: blur(18px) saturate(1.5);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    border-bottom: 1px solid rgba(150,189,198,0.35);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  body.topnav-layout .topbar a{
+    color: rgba(26,46,53,0.82);
+  }
+  body.topnav-layout .topbar a:hover{
+    text-decoration: underline;
+  }
+</style>
+
+<div class="topbar">
+    <h1>Timetable Preview</h1>
+    <span>{{ dept }} | Semester {{ semester }}</span>
+    <a href="/admin/generate-timetable">Regenerate</a>
+    <a href="/admin/dashboard" style="margin-left:8px">← Dashboard</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+<div style="padding: 12px 32px 0">
+{% for cat, msg in messages %}
+<div class="flash-msg flash-{{ cat }}">{{ msg }}</div>
+{% endfor %}
+</div>
+{% endwith %}
+
+<div class="tabs">
+    <div class="tab active" onclick="showTab('class')">Class Timetables</div>
+    <div class="tab" onclick="showTab('teacher')">Teacher Timetables</div>
+    <div class="tab" onclick="showTab('dept')">Department Timetables</div>
+</div>
+
+<div class="content">
+
+    <!-- CLASS -->
+    <div id="panel-class" class="panel active">
+        {% set class_tt = exported.get('class_timetables', {}) %}
+        {% if class_tt %}
+        <div class="selector-row">
+            <select id="classSel" onchange="showClassTT(this.value)">
+                {% for div_id in class_tt.keys() %}
+                <option value="{{ div_id }}">{{ div_id }}</option>
+                {% endfor %}
+            </select>
+            <a class="dl-btn" id="classDownload" href="#" onclick="downloadTT('class')">Download PDF</a>
+        </div>
+        <div id="classTTContainer"></div>
+        {% else %}
+        <div class="empty-msg">No class timetable data. <a href="/admin/generate-timetable" style="color:#60a5fa">Generate first →</a></div>
+        {% endif %}
+    </div>
+
+    <!-- TEACHER -->
+    <div id="panel-teacher" class="panel">
+        {% set teacher_tt = exported.get('teacher_timetables', {}) %}
+        {% if teacher_tt %}
+        <div class="selector-row">
+            <select id="teacherSel" onchange="showTeacherTT(this.value)">
+                {% for tid in teacher_tt.keys() %}
+                <option value="{{ tid }}">{{ tid }}</option>
+                {% endfor %}
+            </select>
+            <a class="dl-btn" href="#" onclick="downloadTT('teacher')">Download PDF</a>
+        </div>
+        <div id="teacherTTContainer"></div>
+        {% else %}
+        <div class="empty-msg">No teacher timetable data.</div>
+        {% endif %}
+    </div>
+
+    <!-- DEPT -->
+    <div id="panel-dept" class="panel">
+        {% set dept_tt = exported.get('dept_timetables', {}) %}
+        {% if dept_tt %}
+        <div class="selector-row">
+            <select id="deptSel" onchange="showDeptTT(this.value)">
+                {% for did in dept_tt.keys() %}
+                <option value="{{ did }}">{{ did }}</option>
+                {% endfor %}
+            </select>
+            <a class="dl-btn" href="#" onclick="downloadTT('dept')">Download PDF</a>
+        </div>
+        <div id="deptTTContainer"></div>
+        {% else %}
+        <div class="empty-msg">No department timetable data.</div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+// Pass timetable data from Flask to JS
+const EXPORTED = {{ exported | tojson }};
+const DAYS     = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+
+function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const tabs = document.querySelectorAll('.tab');
+    const idx  = ['class','teacher','dept'].indexOf(name);
+    if (tabs[idx]) tabs[idx].classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+}
+
+function downloadTT(type) {
+    const selMap = {class:'classSel', teacher:'teacherSel', dept:'deptSel'};
+    const sel    = document.getElementById(selMap[type]);
+    if (!sel) return;
+    const key    = sel.value;
+    window.location.href = `/admin/timetable/pdf/${type}?key=${encodeURIComponent(key)}`;
+}
+
+function buildTable(cells) {
+    if (!cells || cells.length === 0) return '<div class="empty-msg">No data</div>';
+
+    // Collect all period numbers
+    const pnums = [...new Set(cells.map(c => c.period_number))].sort((a,b) => a-b);
+
+    // Group by day
+    const byDay = {};
+    DAYS.forEach(d => byDay[d] = {});
+    cells.forEach(c => { if (byDay[c.day]) byDay[c.day][c.period_number] = c; });
+
+    // Build header
+    let th = `<tr><th>Day / Period</th>` + pnums.map(n => {
+        const sample = cells.find(c => c.period_number === n);
+        return `<th>P${n}<br><small style="font-weight:400;color:#94a3b8">${sample ? sample.period_start+'–'+sample.period_end : ''}</small></th>`;
+    }).join('') + '</tr>';
+
+    let rows = '';
+    DAYS.forEach((day, idx) => {
+        // Insert Friday lunch row before Friday
+        if (day === 'Friday') {
+            rows += `<tr class="lunch-row"><td colspan="${pnums.length+1}">FRIDAY LUNCH BREAK &nbsp; 12:15 – 14:15</td></tr>`;
+        }
+        let row = `<td class="day-cell">${day}</td>`;
+        pnums.forEach(pnum => {
+            const c = byDay[day][pnum];
+            if (!c) {
+                row += `<td class="free-cell">—</td>`;
+            } else if (c.is_remedial) {
+                row += `<td class="remedial-cell">Remedial</td>`;
+            } else if (c.subject_name) {
+                row += `<td class="subj-cell"><div class="subj-name">${c.subject_name}</div>`
+                     + (c.teacher_name ? `<div class="teacher-name">${c.teacher_name}</div>` : '')
+                     + (c.lab_pair ? `<div class="teacher-name" style="color:#a78bfa">${c.lab_pair}</div>` : '')
+                     + `</td>`;
+            } else {
+                row += `<td class="free-cell">—</td>`;
+            }
+        });
+        rows += `<tr>${row}</tr>`;
+    });
+
+    return `<div style="overflow-x:auto"><table class="tt-table"><thead>${th}</thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function showClassTT(div_id) {
+    const cells = (EXPORTED.class_timetables || {})[div_id] || [];
+    document.getElementById('classTTContainer').innerHTML = buildTable(cells);
+}
+function showTeacherTT(tid) {
+    const cells = (EXPORTED.teacher_timetables || {})[tid] || [];
+    document.getElementById('teacherTTContainer').innerHTML = buildTable(cells);
+}
+function showDeptTT(did) {
+    const cells = (EXPORTED.dept_timetables || {})[did] || [];
+    document.getElementById('deptTTContainer').innerHTML = buildTable(cells);
+}
+
+// Auto-load first items on page load
+window.onload = () => {
+    const cSel = document.getElementById('classSel');
+    if (cSel) showClassTT(cSel.value);
+    const tSel = document.getElementById('teacherSel');
+    if (tSel) showTeacherTT(tSel.value);
+    const dSel = document.getElementById('deptSel');
+    if (dSel) showDeptTT(dSel.value);
+};
+</script>
+
+</body>
+</html>

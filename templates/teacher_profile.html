@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Teacher Profile – Timetable System</title>
+    <script>
+        // Shared fetch wrapper (was called across this page's JS but never defined
+        // anywhere in the codebase — every call threw "authFetch is not defined").
+        function authFetch(url, options) {
+            options = options || {};
+            if (!('credentials' in options)) options.credentials = 'same-origin';
+            return fetch(url, options);
+        }
+    </script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <style>
+        /* Win95-inspired skin adjustments (layout unchanged) */
+        body { font-family: 'Outfit', sans-serif; }
+
+        .page-title { font-size: 20px; font-weight: 800; color: #1a2e35; margin-bottom: 20px; }
+
+        .profile-card {
+            background: #ffffff;
+            border-radius: 0;
+            padding: 24px;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 2px 0 rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.10);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .profile-photo-wrap {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(135deg, #5E8E9A, #96BDC6);
+        }
+
+        .profile-photo-wrap img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffffff;
+            background: #ffffff;
+        }
+
+        .profile-photo-wrap .no-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #e8eef7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #ffffff;
+        }
+        .no-photo svg {
+            width: 52px;
+            height: 52px;
+            opacity: 0.65;
+        }
+
+        .upload-photo-btn {
+            display: inline-block;
+            font-size: 13px;
+            color: #0b5ed7;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            padding: 6px 12px;
+            background: #e9f2ff;
+            border-radius: 0;
+            border: 1px solid rgba(0,0,0,0.12);
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.18);
+            transition: transform 0.12s ease, filter 0.16s ease;
+        }
+        
+        .upload-photo-btn:hover {
+            filter: brightness(1.03);
+        }
+
+        .upload-photo-form input[type="file"] {
+            display: none;
+        }
+
+        .info-card {
+            background: #ffffff;
+            border-radius: 0;
+            padding: 30px;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 2px 0 rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.10);
+            margin-bottom: 24px;
+        }
+
+        .info-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.10);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px 24px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .info-item .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .info-item .value {
+            font-size: 15px;
+            color: #0f172a;
+            font-weight: 500;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+
+        .edit-btn-container {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .edit-btn, .save-btn, .cancel-btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .edit-btn {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        
+        .edit-btn:hover { background: #e2e8f0; }
+
+        .save-btn {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        }
+        
+        .save-btn:hover { background: #1d4ed8; }
+
+        .cancel-btn {
+            background: white;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+        
+        .cancel-btn:hover { background: #f1f5f9; color: #334155; }
+
+        /* Form styling inside edit card */
+        .info-card form input[type="text"],
+        .info-card form select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
+            transition: border-color 0.2s;
+        }
+        
+        .info-card form input[type="text"]:focus,
+        .info-card form select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        /* Preference Login Popup */
+        #pref-login-popup {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 380px;
+            background: #ffffff;
+            border-left: 6px solid #2563eb;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+            padding: 24px;
+            z-index: 10000;
+            display: none;
+            animation: slideInUp 0.5s ease-out;
+        }
+        @keyframes slideInUp {
+            0% { transform: translateY(100px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        #pref-login-popup h4 { margin: 0 0 8px; color: #1e293b; font-size: 16px; font-weight: 700; }
+        #pref-login-popup p { margin: 0 0 20px; color: #64748b; font-size: 14px; line-height: 1.5; }
+        #pref-login-popup .popup-btns { display: flex; gap: 12px; }
+        #pref-login-popup .btn-go { background: #2563eb; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+        #pref-login-popup .btn-go:hover { background: #1d4ed8; }
+        #pref-login-popup .btn-dismiss { background: #f1f5f9; color: #475569; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+
+<body class="topnav-layout">
+    <!-- Preference Login Popup -->
+    <div id="pref-login-popup">
+        <h4> Preference Submission Open</h4>
+        <p>The preference window for the current semester is now open. Would you like to submit your subject preferences now?</p>
+        <div class="popup-btns">
+            <a href="/teacher/preferences" class="btn-go">Submit Now →</a>
+            <button class="btn-dismiss" onclick="closePrefPopup()">Maybe Later</button>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            Teacher Dashboard
+        </div>
+        <div class="header-right" style="display:flex;align-items:center;gap:16px;">
+            <nav class="top-nav" aria-label="Teacher navigation">
+                <a href="/" class="{% if request.path == '/' %}active{% endif %}">My Profile</a>
+                <a href="/teacher/timetable" class="{% if request.path.startswith('/teacher/timetable') %}active{% endif %}">Timetable</a>
+                <a href="/teacher/preferences" class="{% if request.path.startswith('/teacher/preferences') %}active{% endif %}">Preference</a>
+                <a href="/notifications" class="{% if request.path.startswith('/notifications') %}active{% endif %}">Notifications</a>
+                <a href="/teacher/settings" class="{% if request.path.startswith('/teacher/settings') %}active{% endif %}">Settings</a>
+            </nav>
+            <div style="position:relative;">
+                <button id="adminBell" onclick="toggleAdminNotif()" style="background:rgba(233,242,255,0.70);border:1px solid rgba(150,189,198,0.35);color:#1a2e35;padding:6px 10px;border-radius:10px;cursor:pointer;font-size:16px;position:relative;">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;" aria-label="Notifications"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                     <span id="adminBellBadge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:none;align-items:center;justify-content:center;"></span>
+                </button>
+                <div id="adminNotifPanel" style="display:none;position:absolute;right:0;top:44px;width:360px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.16);z-index:9999;border:1px solid #e2e8f0;text-align:left;">
+                    <div style="background:#2563eb;color:#fff;padding:12px 16px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;">
+                        Notifications Centre
+                        <button onclick="toggleAdminNotif()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">&times;</button>
+                    </div>
+                    <div id="adminNotifBody" style="max-height:360px;overflow-y:auto;text-align:left;color:#334155;"><div style="padding:20px;text-align:center;color:#94a3b8;">Loading…</div></div>
+                    <div style="padding:10px 16px;border-top:1px solid #f1f5f9;text-align:center;">
+                        <form method="POST" action="/notifications/clear" style="margin:0;">
+                            <button type="submit" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Clear seen notifications</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <a href="/" class="nav-btn active">My Profile</a>
+                <a href="/teacher/timetable" class="nav-btn">Timetable</a>
+                <a href="/teacher/preferences" class="nav-btn">Preference</a>
+                <a href="/notifications" class="nav-btn">Notifications</a>
+                <a href="/teacher/settings" class="nav-btn">Settings</a>
+            </div>
+
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div style="padding:10px 16px; border-radius:6px; margin-bottom:16px; font-size:14px;
+                 background:{% if category == 'error' %}#fde8e8{% else %}#e8f5e9{% endif %};
+                 color:{% if category == 'error' %}#b00020{% else %}#1b5e20{% endif %};
+                 border:1px solid {% if category == 'error' %}#f5c6c6{% else %}#c8e6c9{% endif %};">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endwith %}
+
+            <div class="page-title">Personal Information</div>
+
+            <!-- PROFILE SUMMARY -->
+            <div class="profile-card">
+                <!-- Photo + upload -->
+                <div class="profile-photo-wrap">
+                    {% if teacher and teacher.photo_path %}
+                    <img src="{{ url_for('static', filename='uploads/' + teacher.photo_path) }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="no-photo">
+                      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="No profile photo">
+                        <circle cx="32" cy="22" r="13" fill="#4a6fa5"/>
+                        <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#4a6fa5" opacity="0.7"/>
+                      </svg>
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:6px;">
+                    <h2 style="margin:0; font-size: 22px; font-weight: 700; color: #0f172a;">{{ teacher.name if teacher else 'Teacher Name' }}</h2>
+                    <span style="font-size: 14px; font-weight: 500; color: #475569; display: flex; align-items: center; gap: 8px;">
+                        <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 12px;">{{ teacher.designation if teacher else 'Designation' }}</span>
+                        {{ teacher.dept.name if teacher and teacher.dept else '' }}
+                    </span>
+                    <form class="upload-photo-form" method="POST" action="/upload-photo" enctype="multipart/form-data" style="margin-top:6px;">
+                        <div style="display:flex; gap:8px;">
+                            <label for="photoInput" class="upload-photo-btn">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                              Update Profile Image
+                            </label>
+                            {% if teacher and teacher.photo_path %}
+                            <button type="button" class="upload-photo-btn" style="border:none; color:#dc2626; background:#fef2f2;" onclick="document.getElementById('removePhotoForm').submit()">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                              Delete Profile Image
+                            </button>
+                            {% endif %}
+                        </div>
+                        <input type="file" id="photoInput" name="photo" accept="image/*" onchange="this.form.submit()">
+                    </form>
+                    <form id="removePhotoForm" method="POST" action="/remove-photo" style="display:none;"></form>
+                </div>
+            </div>
+
+            <!-- ================= BASIC DETAILS ================= -->
+
+            <!-- VIEW MODE -->
+            <div class="info-card" id="basicView">
+                <h3>Basic Details</h3>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Teacher ID</span>
+                        <span class="value">{{ teacher.id if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Teacher Code</span>
+                        <span class="value">{{ teacher.code if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Display Name</span>
+                        <span class="value">{{ teacher.name if teacher and teacher.name else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Gender</span>
+                        <span class="value">{{ teacher.gender if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Designation</span>
+                        <span class="value">{{ teacher.designation if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Department</span>
+                        <span class="value">{{ teacher.dept.name if teacher and teacher.dept else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Date of Joining</span>
+                        <span class="value">{{ teacher.date_of_joining if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Experience (yrs)</span>
+                        <span class="value">{{ teacher.experience if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Area of Interest</span>
+                        <span class="value">{{ teacher.area_of_specialization if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Seniority Level</span>
+                        <span class="value">{{ teacher.seniority_level if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Qualification</span>
+                        <span class="value">{{ teacher.qualification if teacher else '' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Username</span>
+                        <span class="value">{{ current_user.username }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Email</span>
+                        <span class="value">{{ current_user.email or '—' }}</span>
+                    </div>
+                </div>
+
+                <div class="edit-btn-container">
+                    <button class="edit-btn" onclick="editBasic()">Edit</button>
+                </div>
+            </div>
+
+            <!-- EDIT MODE -->
+            <form class="info-card hidden" id="basicEdit" method="POST" action="/update-basic-details">
+                <h3>Edit Basic Details</h3>
+
+                <div class="info-grid">
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Display Name</label>
+                        <input type="text" name="display_name" placeholder="Full Name"
+                            value="{{ teacher.name if teacher and teacher.name else '' }}" required>
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Gender</label>
+                        <select name="gender">
+                            <option value="">Select Gender</option>
+                            <option {% if teacher and teacher.gender in ['M','Male'] %}selected{% endif %} value="M">Male</option>
+                            <option {% if teacher and teacher.gender in ['F','Female'] %}selected{% endif %} value="F">Female</option>
+                            <option {% if teacher and teacher.gender not in ['M','Male','F','Female',''] %}selected{% endif %} value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Designation</label>
+                        <select name="designation">
+                            <option value="">Select Designation</option>
+                            <option {% if teacher and teacher.designation=='Professor' %}selected{% endif %}>Professor</option>
+                            <option {% if teacher and teacher.designation=='Associate Professor' %}selected{% endif %}>Associate Professor</option>
+                            <option {% if teacher and teacher.designation=='Assistant Professor' %}selected{% endif %}>Assistant Professor</option>
+                            <option {% if teacher and teacher.designation=='Lecturer' %}selected{% endif %}>Lecturer</option>
+                            <option {% if teacher and 'Principal' in (teacher.designation or '') %}selected{% endif %} value="{{ teacher.designation if teacher else '' }}">{{ teacher.designation if teacher and 'Principal' in (teacher.designation or '') else 'Principal / Professor' }}</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date of Joining</label>
+                        <input type="text" name="date_of_joining" placeholder="e.g. 01/07/2020"
+                            value="{{ teacher.date_of_joining if teacher else '' }}">
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Experience (years)</label>
+                        <input type="text" name="experience" placeholder="e.g. 5"
+                            value="{{ teacher.experience if teacher else '' }}">
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Area of Interest</label>
+                        <input type="text" name="area_specialization" placeholder="e.g. Machine Learning"
+                            value="{{ teacher.area_of_specialization if teacher else '' }}">
+                    </div>
+
+
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Qualification</label>
+                        <input type="text" name="qualification" placeholder="e.g. M.Tech, Ph.D"
+                            value="{{ teacher.qualification if teacher else '' }}">
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Username</label>
+                        <input type="text" name="username" placeholder="Login username"
+                            value="{{ current_user.username }}">
+                    </div>
+
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Email</label>
+                        <input type="text" name="email" placeholder="e.g. teacher@college.edu"
+                            value="{{ current_user.email or '' }}">
+                    </div>
+                </div>
+
+                <div class="edit-btn-container">
+                    <button type="submit" class="save-btn">Save</button>
+                    <button type="button" class="cancel-btn" onclick="cancelBasic()">Cancel</button>
+                </div>
+            </form>
+
+
+
+        </div>
+    </div>
+
+<script>
+let notifOpen = false;
+function toggleAdminNotif() {
+    notifOpen = !notifOpen;
+    const panel = document.getElementById('adminNotifPanel');
+    panel.style.display = notifOpen ? 'block' : 'none';
+    if(notifOpen) loadNotifs();
+}
+function loadNotifs() {
+    const body = document.getElementById('adminNotifBody');
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;">Loading…</div>';
+    authFetch('/api/notifications/popup')
+      .then(r => r.json())
+      .then(data => {
+          if(!data.notifications || data.notifications.length === 0) {
+              body.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#64748b;font-size:13px;">No new notifications! </div>';
+              return;
+          }
+          let html = '';
+          data.notifications.forEach(n => {
+              html += `<div style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+                         <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px;">${n.title}</div>
+                         <div style="font-size:12px;color:#475569;margin-bottom:6px;line-height:1.4;">${n.message}</div>
+                         <div style="font-size:11px;color:#94a3b8;font-weight:500;">${n.at}</div>
+                       </div>`;
+          });
+          html += `<div style="padding:10px;text-align:center;"><a href="/notifications" style="font-size:12px;color:#2563eb;text-decoration:none;font-weight:600;">View All Notifications →</a></div>`;
+          body.innerHTML = html;
+      });
+}
+function checkUnread() {
+    authFetch('/api/notifications/unread-count')
+      .then(r => r.json())
+      .then(d => {
+          const badge = document.getElementById('adminBellBadge');
+          if(d.count > 0) {
+              badge.textContent = d.count > 9 ? '9+' : d.count;
+              badge.style.display = 'flex';
+          } else {
+              badge.style.display = 'none';
+          }
+      });
+}
+function cancelBasic() {
+    document.getElementById('basicView').classList.remove('hidden');
+    document.getElementById('basicEdit').classList.add('hidden');
+}
+
+function closePrefPopup() {
+    document.getElementById('pref-login-popup').style.display = 'none';
+    sessionStorage.setItem('pref_popup_seen', 'true');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkUnread();
+    
+    // Check for preference window
+    if (!sessionStorage.getItem('pref_popup_seen')) {
+        authFetch('/api/preference-window/status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.open) {
+                    document.getElementById('pref-login-popup').style.display = 'block';
+                }
+            });
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+{% extends "hod_base.html" %}
+{% block title %}My Profile{% endblock %}
+
+{% block extra_head %}
+<style>
+  .profile-card { background:#fff; border:1px solid #d1d5db; border-radius:12px; padding:24px; display:flex; align-items:center; gap:24px; margin-bottom:20px; }
+  .avatar-wrap { width:88px; height:88px; border-radius:50%; background:#e8eef7; border:2px solid #c4d4ee; display:flex; align-items:center; justify-content:center; color:#4a6fa5; flex-shrink:0; overflow:hidden; }
+  .avatar-wrap img { width:88px; height:88px; border-radius:50%; object-fit:cover; }
+  .avatar-placeholder-icon { width:52px; height:52px; opacity:0.7; }
+  .profile-name { font-size:22px; font-weight:700; color:#0f172a; }
+  .profile-desig { font-size:14px; color:#64748b; margin-top:4px; }
+  .upload-btn { font-size:13px; color:#0b5ed7; background:#e9f2ff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; margin-top:8px; display:inline-block; font-weight:500; }
+  .upload-btn:hover { background:#dbe8ff; }
+  .info-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  .info-item { display:flex; flex-direction:column; gap:4px; }
+  .info-label { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.06em; }
+  .info-value { font-size:14px; color:#1e293b; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:9px 12px; min-height:38px; }
+  .edit-bar { margin-top:20px; display:flex; justify-content:flex-end; gap:10px; }
+  input[type=text], input[type=date], select { width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-family:inherit; box-sizing:border-box; }
+  input:focus, select:focus { outline:none; border-color:#0b5ed7; box-shadow:0 0 0 3px rgba(11,94,215,0.12); }
+  label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:5px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">My Profile — HOD</div>
+
+<!-- Profile Summary Card -->
+<div class="profile-card">
+  <div class="avatar-wrap">
+    {% if teacher and teacher.photo_path %}
+    <img src="{{ url_for('static', filename='uploads/' + teacher.photo_path) }}" alt="Profile Photo">
+    {% else %}
+    <svg class="avatar-placeholder-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="No profile photo">
+      <circle cx="32" cy="22" r="13" fill="#4a6fa5" opacity="0.75"/>
+      <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#4a6fa5" opacity="0.55"/>
+    </svg>
+    {% endif %}
+  </div>
+  <div>
+    <div class="profile-name">{{ teacher.name if teacher else 'HOD Name' }}</div>
+    <div class="profile-desig">{{ teacher.designation or 'Head of Department' }} &mdash; {{ dept.name if dept else '' }}</div>
+    <form class="upload-photo-form" method="POST" action="/upload-photo" enctype="multipart/form-data">
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <label for="photoInput" class="upload-btn" style="cursor:pointer;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Update Profile Image
+        </label>
+        {% if teacher and teacher.photo_path %}
+        <button type="button" class="upload-btn" style="background:#fee2e2;color:#dc2626;border:none;" onclick="document.getElementById('removePhotoForm').submit()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Delete Profile Image
+        </button>
+        {% endif %}
+      </div>
+      <input type="file" id="photoInput" name="photo" accept="image/*" onchange="this.form.submit()" style="display:none">
+    </form>
+    <form id="removePhotoForm" method="POST" action="/remove-photo" style="display:none"></form>
+  </div>
+</div>
+
+<!-- Basic Details -->
+<div class="card" id="basicView">
+  <h3>Personal Information</h3>
+  <div class="info-grid">
+    <div class="info-item"><span class="info-label">Full Name</span><span class="info-value">{{ teacher.name if teacher else '—' }}</span></div>
+    <div class="info-item"><span class="info-label">Gender</span><span class="info-value">{{ teacher.gender or '—' }}</span></div>
+    <div class="info-item"><span class="info-label">Designation</span><span class="info-value">{{ teacher.designation or '—' }}</span></div>
+    <div class="info-item"><span class="info-label">Date of Joining</span><span class="info-value">{{ teacher.date_of_joining or '—' }}</span></div>
+    <div class="info-item"><span class="info-label">Experience (yrs)</span><span class="info-value">{{ teacher.experience or '—' }}</span></div>
+    <div class="info-item"><span class="info-label">Qualification</span><span class="info-value">{{ teacher.qualification or '—' }}</span></div>
+    <div class="info-item"><span class="info-label">Username</span><span class="info-value">{{ current_user.username }}</span></div>
+    <div class="info-item"><span class="info-label">Email</span><span class="info-value">{{ current_user.email or '—' }}</span></div>
+  </div>
+  <div class="edit-bar"><button class="btn btn-secondary" onclick="showEdit()">Edit</button></div>
+</div>
+
+<!-- Edit Form -->
+<form class="card" id="basicEdit" method="POST" action="/update-basic-details" style="display:none;">
+  <h3>Edit Personal Information</h3>
+  <div class="info-grid">
+    <div class="info-item">
+      <label>Display Name</label>
+      <input type="text" name="first_name" value="{{ teacher.name if teacher else '' }}" placeholder="Full Name">
+      <input type="hidden" name="last_name" value="">
+    </div>
+    <div class="info-item">
+      <label>Gender</label>
+      <select name="gender">
+        <option value="">Select</option>
+        <option value="M" {% if teacher and teacher.gender=='M' %}selected{% endif %}>Male</option>
+        <option value="F" {% if teacher and teacher.gender=='F' %}selected{% endif %}>Female</option>
+        <option value="Other" {% if teacher and teacher.gender=='Other' %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+    <div class="info-item">
+      <label>Designation</label>
+      <select name="designation">
+        <option value="">Select</option>
+        <option {% if teacher and teacher.designation=='Professor' %}selected{% endif %}>Professor</option>
+        <option {% if teacher and teacher.designation=='Associate Professor' %}selected{% endif %}>Associate Professor</option>
+        <option {% if teacher and teacher.designation=='Assistant Professor' %}selected{% endif %}>Assistant Professor</option>
+        <option {% if teacher and teacher.designation=='HOD' %}selected{% endif %}>HOD</option>
+      </select>
+    </div>
+    <div class="info-item"><label>Date of Joining</label><input type="text" name="date_of_joining" value="{{ teacher.date_of_joining or '' }}" placeholder="DD/MM/YYYY"></div>
+    <div class="info-item"><label>Experience (yrs)</label><input type="text" name="experience" value="{{ teacher.experience or '' }}"></div>
+    <div class="info-item"><label>Qualification</label><input type="text" name="qualification" value="{{ teacher.qualification or '' }}" placeholder="e.g. M.Tech, Ph.D"></div>
+    <div class="info-item"><label>Username</label><input type="text" name="username" value="{{ current_user.username }}"></div>
+    <div class="info-item"><label>Email</label><input type="text" name="email" value="{{ current_user.email or '' }}"></div>
+  </div>
+  <div class="edit-bar">
+    <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showEdit() {
+  document.getElementById('basicView').style.display='none';
+  document.getElementById('basicEdit').style.display='block';
+}
+function cancelEdit() {
+  document.getElementById('basicView').style.display='block';
+  document.getElementById('basicEdit').style.display='none';
+}
+</script>
+{% endblock %}

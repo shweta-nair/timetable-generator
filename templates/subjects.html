@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Subjects – Teacher Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+
+        .filter-bar {
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px;
+        }
+        .filter-bar input,
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            background: white;
+        }
+        .filter-bar input { width: 220px; }
+
+        .type-badge {
+            font-size: 11px; background: #eff6ff; color: #2563eb;
+            padding: 2px 8px; border-radius: 10px; font-weight: 600;
+        }
+        .table-wrapper { overflow-x: auto; }
+        .course-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .course-table th {
+            background: #f1f5f9; color: #374151; font-weight: 600;
+            padding: 10px 14px; text-align: left; font-size: 13px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .course-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+        .course-table tr:hover td { background: #f8fafc; }
+
+        .dept-heading {
+            font-size: 16px; font-weight: 700; color: #1e293b;
+            margin: 0 0 12px 0; padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .dept-count {
+            font-size: 12px; font-weight: 500; color: #64748b;
+            background: #f1f5f9; padding: 2px 8px; border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            Teacher Dashboard
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <a href="/" class="nav-btn">Personal Information</a>
+                <a href="/departments" class="nav-btn">Departments</a>
+                <a href="/subjects" class="nav-btn active">Subjects</a>
+                <a href="/timetable" class="nav-btn">Timetable</a>
+                <a href="/settings" class="nav-btn">Settings</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+            <div class="page-title">Subjects / Courses</div>
+
+            <!-- FILTER BAR -->
+            <div class="info-card" style="margin-bottom: 16px;">
+                <div class="filter-bar">
+                    <select id="filterDept">
+                        <option value="">All Departments</option>
+                        {% for dept in courses_by_dept.keys() %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="filterType">
+                        <option value="">All Types</option>
+                        <option value="CORE">Core</option>
+                        <option value="LAB">Lab</option>
+                        <option value="ELECTIVE">Elective</option>
+                        <option value="PROJECT">Project</option>
+                    </select>
+
+                    <select id="filterSem">
+                        <option value="">All Semesters</option>
+                        {% for s in range(1, 9) %}
+                        <option value="{{ s }}">Semester {{ s }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="filterYear">
+                        <option value="">All Years</option>
+                        <option value="Year 1">Year 1 (Sem 1–2)</option>
+                        <option value="Year 2">Year 2 (Sem 3–4)</option>
+                        <option value="Year 3">Year 3 (Sem 5–6)</option>
+                        <option value="Year 4">Year 4 (Sem 7–8)</option>
+                    </select>
+
+                    <input type="text" id="subjectSearch" placeholder="Search code / name…">
+                </div>
+            </div>
+
+            {% for dept, courses in courses_by_dept.items() %}
+            {% if courses %}
+            <div class="info-card dept-section" data-dept-id="{{ dept.id }}" style="margin-bottom: 20px;">
+                <div class="dept-heading">
+                    {{ dept.name }}
+                    <span class="dept-count">{{ courses|length }} courses</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="course-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Course Name</th>
+                                <th>Student Dept</th>
+                                <th>Teacher Dept</th>
+                                <th>Type</th>
+                                <th>Semester</th>
+                                <th>Hrs / Week</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in courses %}
+                            <tr class="course-row"
+                                data-dept="{{ dept.id }}"
+                                data-type="{{ c.type or '' }}"
+                                data-sem="{{ c.semester or '' }}">
+                                <td><strong>{{ c.code }}</strong></td>
+                                <td>{{ c.name }}</td>
+                                <td><span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;">{{ c.department or '—' }}</span></td>
+                                <td>{{ c.dept_id or '—' }}</td>
+                                <td>{% if c.type %}<span class="type-badge">{{ c.type }}</span>{% else %}—{% endif %}</td>
+                                <td>{{ c.semester or '—' }}</td>
+                                <td>{{ c.hours_per_week or '—' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" style="color:#94a3b8; text-align:center; padding:20px;">No courses in this department.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="info-card">
+                <p class="note">No subjects found in database.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function applyFilters() {
+            const q    = document.getElementById('subjectSearch').value.toLowerCase();
+            const fD   = document.getElementById('filterDept').value;
+            const fT   = document.getElementById('filterType').value.toLowerCase();
+            const fS   = document.getElementById('filterSem').value;
+            const fY   = document.getElementById('filterYear').value;
+
+            document.querySelectorAll('.dept-section').forEach(section => {
+                const dId = section.getAttribute('data-dept-id');
+                let visCount = 0;
+
+                section.querySelectorAll('.course-row').forEach(row => {
+                    const code  = row.cells[0].textContent.toLowerCase();
+                    const name  = row.cells[1].textContent.toLowerCase();
+                    const rDept = row.getAttribute('data-dept');
+                    const rType = row.getAttribute('data-type').toLowerCase();
+                    const rSem  = row.getAttribute('data-sem');
+
+                    let rYear = '';
+                    if (rSem === '1' || rSem === '2') rYear = 'Year 1';
+                    else if (rSem === '3' || rSem === '4') rYear = 'Year 2';
+                    else if (rSem === '5' || rSem === '6') rYear = 'Year 3';
+                    else if (rSem === '7' || rSem === '8') rYear = 'Year 4';
+
+                    const ok = (!q  || code.includes(q) || name.includes(q))
+                             && (!fD || rDept === fD)
+                             && (!fT || rType.includes(fT))
+                             && (!fS || rSem === fS)
+                             && (!fY || rYear === fY);
+
+                    row.style.display = ok ? '' : 'none';
+                    if (ok) visCount++;
+                });
+
+                section.style.display = visCount > 0 ? '' : 'none';
+            });
+        }
+
+        ['subjectSearch','filterDept','filterType','filterSem','filterYear']
+            .forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
+        ['filterDept','filterType','filterSem','filterYear']
+            .forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
+    </script>
+</body>
+
+</html>

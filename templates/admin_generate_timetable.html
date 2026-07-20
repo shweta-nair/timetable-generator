@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Generate Timetable</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .generate-card {
+            background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 40px; margin-top: 20px;
+            max-width: 600px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .generate-card h2 { color: #0b5ed7; margin-top: 0; margin-bottom: 8px; }
+        .generate-card .subtitle { color: #555; font-size: 14px; margin-bottom: 30px; }
+
+        /* Semester toggle */
+        .toggle-group { display: flex; gap: 15px; margin-bottom: 25px; }
+        .toggle-label { flex: 1; cursor: pointer; }
+        .toggle-label input { display: none; }
+        .toggle-card {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 16px; border-radius: 6px; border: 2px solid #d1d5db;
+            background: #ffffff; transition: all .2s;
+        }
+        .toggle-card .badge { font-size: 11px; color: #64748b; margin-top: 6px; }
+        .toggle-card .label { font-size: 15px; font-weight: bold; color: #334155; }
+        .toggle-label input:checked + .toggle-card { border-color: #0b5ed7; background: #e9f2ff; box-shadow: 0 0 0 3px rgba(11,94,215,0.15); }
+        .toggle-label input:checked + .toggle-card .label { color: #0b5ed7; }
+        .toggle-label input:checked + .toggle-card .badge { color: #0b5ed7; }
+        .toggle-card:hover { border-color: #a3c4f3; }
+
+        label.field-label { display: block; color: #555; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
+        .field-wrap { margin-bottom: 24px; }
+
+        /* Note box */
+        .note {
+            background: #fff8e1; border: 1px solid #ffe082;
+            border-radius: 6px; padding: 14px 18px; margin-bottom: 30px;
+            color: #8d6e63; font-size: 13.5px; line-height: 1.6;
+        }
+        .note strong { color: #5d4037; }
+
+        /* Buttons */
+        .generate-btn {
+            width: 100%; padding: 14px;
+            background: #0b5ed7; color: white; border: none; border-radius: 6px;
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: all .2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .generate-btn:hover { background: #094eb3; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(11,94,215,.2); }
+        .generate-btn.loading { opacity: .7; pointer-events: none; }
+
+        /* Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display: none; width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,.3); border-top-color: white;
+            border-radius: 50%; animation: spin .8s linear infinite;
+        }
+        .generate-btn.loading .spinner { display: block; }
+        .generate-btn.loading .btn-text { opacity: .8; }
+
+        .flash-msg { padding: 10px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
+        .flash-msg.error { background: #fde8e8; color: #b00020; border: 1px solid #f5c6c6; }
+        .flash-msg.success { background: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
+    </style>
+</head>
+<body class="topnav-layout">
+
+    <div class="header">
+        <div class="header-left">
+            Admin Panel
+            <nav class="top-nav" aria-label="Admin navigation">
+                <a href="/admin" class="{% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+                <a href="/admin/departments" class="{% if request.path.startswith('/admin/departments') %}active{% endif %}">Departments</a>
+                <a href="/admin/teachers" class="{% if request.path.startswith('/admin/teachers') %}active{% endif %}">Teachers</a>
+                <a href="/admin/subjects" class="{% if request.path.startswith('/admin/subjects') %}active{% endif %}">Subjects</a>
+                <a href="/admin/generate-timetable" class="{% if request.path.startswith('/admin/generate-timetable') %}active{% endif %}">Generate</a>
+                <a href="/admin/timetable/view" class="{% if request.path.startswith('/admin/timetable') %}active{% endif %}">View Timetable</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <a href="/admin" class="nav-btn">Dashboard</a>
+                <a href="/admin/departments" class="nav-btn">Departments</a>
+                <a href="/admin/teachers" class="nav-btn">Teachers</a>
+                <a href="/admin/subjects" class="nav-btn">Subjects</a>
+                <a href="/admin/generate-timetable" class="nav-btn active">Generate Timetable</a>
+                <a href="/admin/timetable/view" class="nav-btn">View Timetable</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="page-title">Generate Timetable</div>
+            
+            <div class="generate-card">
+                <h2>Run Scheduler</h2>
+                <p class="subtitle">Execute the Subject Assignment & Scheduling engines and save results to the database.</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for cat, msg in messages %}
+                <div class="flash-msg {{ cat }}">{{ msg }}</div>
+                {% endfor %}
+                {% endwith %}
+
+                <form method="POST" action="/admin/generate-timetable" id="genForm">
+                    
+                    <div class="field-wrap">
+                        <label class="field-label">Department</label>
+                        <select name="department" id="deptSelect" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;">
+                            <option value="">-- Select Department --</option>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}">{{ d.name }} ({{ d.id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="field-wrap">
+                        <label class="field-label">Semester</label>
+                        <select name="semester" id="semSelect" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;" disabled>
+                            <option value="">-- Select Semester --</option>
+                            {% if sem_type == 'odd' %}
+                                <option value="1">Semester 1</option>
+                                <option value="3">Semester 3</option>
+                                <option value="5">Semester 5</option>
+                                <option value="7">Semester 7</option>
+                            {% else %}
+                                <option value="2">Semester 2</option>
+                                <option value="4">Semester 4</option>
+                                <option value="6">Semester 6</option>
+                                <option value="8">Semester 8</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="field-wrap">
+                        <label class="field-label">Division</label>
+                        <select name="division" id="divSelect" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;" disabled>
+                            <option value="">-- Select Division --</option>
+                        </select>
+                    </div>
+
+                    <div class="note">
+                    <strong>How it works:</strong><br>
+                    Selecting a specific class will generate its timetable. Because of hard teacher clash constraints, timetables for the entire department and semester will be regenerated and saved simultaneously.
+                    </div>
+
+                    <button type="submit" class="generate-btn" id="genBtn">
+                    <span class="spinner" id="spinner"></span>
+                    <span class="btn-text">Generate Timetable</span>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const deptSelect = document.getElementById('deptSelect');
+        const semSelect = document.getElementById('semSelect');
+        const divSelect = document.getElementById('divSelect');
+
+        // Enable semester when dept is chosen
+        deptSelect.addEventListener('change', function() {
+            if (this.value) {
+                semSelect.disabled = false;
+            } else {
+                semSelect.disabled = true;
+                semSelect.value = '';
+                divSelect.disabled = true;
+                divSelect.innerHTML = '<option value="">-- Select Division --</option>';
+            }
+            fetchDivisions();
+        });
+
+        // Fetch divisions when sem is chosen
+        semSelect.addEventListener('change', fetchDivisions);
+
+        function fetchDivisions() {
+            const dept = deptSelect.value;
+            const sem = semSelect.value;
+            
+            if(!dept || !sem) {
+                divSelect.disabled = true;
+                divSelect.innerHTML = '<option value="">-- Select Division --</option>';
+                return;
+            }
+            
+            fetch(`/api/divisions-by-sem?dept_id=${dept}&semester=${sem}`)
+                .then(r => r.json())
+                .then(divisions => {
+                    divSelect.innerHTML = '<option value="">-- Select Division --</option>';
+                    if(divisions.length > 0) {
+                        divSelect.disabled = false;
+                        divisions.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d;
+                            opt.textContent = d;
+                            divSelect.appendChild(opt);
+                        });
+                    } else {
+                        divSelect.disabled = true;
+                        const opt = document.createElement('option');
+                        opt.value = "";
+                        opt.textContent = "No divisions found";
+                        divSelect.appendChild(opt);
+                    }
+                });
+        }
+
+        document.getElementById('genForm').addEventListener('submit', function() {
+            const btn = document.getElementById('genBtn');
+            btn.classList.add('loading');
+            btn.querySelector('.btn-text').textContent = 'Running scheduler… please wait';
+        });
+    </script>
+</body>
+</html>

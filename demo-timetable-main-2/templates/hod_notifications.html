@@ -1,0 +1,84 @@
+{% extends "hod_base.html" %}
+{% block title %}Send Notifications{% endblock %}
+
+{% block extra_head %}
+<style>
+  .compose-card { max-width:620px; }
+  .notif-list { max-height:420px; overflow-y:auto; }
+  .notif-row { border-bottom:1px solid #f1f5f9; padding:12px 0; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .notif-row:last-child { border-bottom:none; }
+  .notif-row .nr-body { flex:1; min-width:0; }
+  .notif-row .title { font-weight:700; font-size:14px; color:#0b5ed7; }
+  .notif-row .meta  { font-size:11px; color:#94a3b8; margin:2px 0; }
+  .notif-row .msg   { font-size:13px; color:#475569; line-height:1.5; }
+  .recipient-badge  { display:inline-block; background:#e9f2ff; color:#0b5ed7; padding:2px 8px; border-radius:0; font-size:11px; font-weight:800;
+    border:1px solid rgba(0,0,0,0.10); box-shadow: inset 1px 1px 0 rgba(255,255,255,0.55), inset -1px -1px 0 rgba(0,0,0,0.12); }
+  .btn-del-sent { background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">Notifications — {{ dept.name }}</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+  <!-- Compose form -->
+  <div class="card compose-card">
+    <h3>Send Notification</h3>
+    <form method="POST" action="{{ url_for('hod_notifications') }}">
+      <div style="margin-bottom:12px;">
+        <label>Recipient</label>
+        <select name="recipient">
+          <option value="all">All Department Teachers</option>
+          {% for t in teachers %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Title</label>
+        <input name="title" required placeholder="e.g. Preference Window Open">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label>Message</label>
+        <textarea name="message" rows="5" required placeholder="Enter your notification message…" style="resize:vertical;"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Send Notification</button>
+    </form>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h3 style="margin:0;">Recent Sent (last 30)</h3>
+      {% if sent_notifications %}
+      <form method="POST" action="/hod/notifications/clear-sent" style="margin:0;"
+            onsubmit="return confirm('Clear all sent notification logs?')">
+        <button type="submit" class="btn-del-sent">Clear Log</button>
+      </form>
+      {% endif %}
+    </div>
+    <div class="notif-list">
+    {% for n in sent_notifications %}
+    <div class="notif-row" id="snr-{{ n.id }}">
+      <div class="nr-body">
+        <div class="title">{{ n.title }}</div>
+        <div class="meta">
+          {{ n.created_at.strftime('%d %b %Y %H:%M') if n.created_at else '—' }} •
+          <span class="recipient-badge">{{ n.recipient.name if n.recipient else 'All Dept' }}</span>
+        </div>
+        <div class="msg">{{ n.message[:120] }}{% if n.message|length > 120 %}…{% endif %}</div>
+      </div>
+      <form method="POST" action="/hod/notifications/delete/{{ n.id }}" style="margin:0;">
+        <button type="submit" class="btn-del-sent" title="Remove this log entry">✕</button>
+      </form>
+    </div>
+    {% else %}
+    <p style="color:#94a3b8;font-size:13px;">No notifications sent yet.</p>
+    {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

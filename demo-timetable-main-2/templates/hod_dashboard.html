@@ -1,0 +1,74 @@
+{% extends "hod_base.html" %}
+{% block title %}HOD Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:24px; }
+  .stat-box { background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:0; padding:20px; text-align:center;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 2px 0 rgba(0,0,0,0.03); }
+  .stat-box .num { font-size:36px; font-weight:800; color:#0b5ed7; line-height:1; }
+  .stat-box .lbl { font-size:12px; color:#64748b; font-weight:600; margin-top:4px; text-transform:uppercase; letter-spacing:.06em; }
+  .win-banner { padding:14px 18px; border-radius:0; display:flex; align-items:center; gap:12px; margin-bottom:20px; font-size:13.5px; font-weight:600;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10); }
+  .win-open   { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+  .win-closed { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+  .quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .quick-link { display:flex; align-items:center; gap:12px; padding:16px; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:0; text-decoration:none; color:#0b5ed7; font-weight:600; font-size:14px; transition:transform .12s ease, background .16s ease, filter .16s ease; 
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10); }
+  .quick-link:hover { background:#f5f9ff; border-color:rgba(0,0,0,0.10); transform:translateY(-1px); filter:brightness(1.02); box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.08); }
+  .quick-link .icon { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">HOD Dashboard — {{ dept.name }}</div>
+
+{% if pref_window and pref_window.is_currently_open() %}
+<div class="win-banner win-open">
+  Preference window is OPEN ({{ sem_type.title() }} semester) — closes
+  {{ pref_window.open_until.strftime('%d %b %Y %H:%M') if pref_window.open_until else 'manually' }} UTC
+</div>
+{% else %}
+<div class="win-banner win-closed">
+  Preference window is CLOSED — go to "Preference Window" to open it
+</div>
+{% endif %}
+
+<div class="stats-row">
+  <div class="stat-box"><div class="num">{{ teachers|length }}</div><div class="lbl">Teachers</div></div>
+  <div class="stat-box"><div class="num">{{ courses|length }}</div><div class="lbl">Courses</div></div>
+  <div class="stat-box">
+    <div class="num">{{ sem_type[0]|upper }}</div>
+    <div class="lbl">Active Sem ({{ sem_type }})</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ recent_notifs|length }}</div>
+    <div class="lbl">Notifications</div>
+  </div>
+</div>
+
+<div class="quick-grid" style="margin-bottom:24px;">
+  <a class="quick-link" href="{{ url_for('hod_subjects') }}"><span class="icon"></span> Manage Subjects / LTPR</a>
+  <a class="quick-link" href="{{ url_for('hod_teachers') }}"><span class="icon"></span> Manage Teachers</a>
+  <a class="quick-link" href="{{ url_for('hod_preference_window') }}"><span class="icon"></span> Preference Window</a>
+  <a class="quick-link" href="{{ url_for('hod_notifications') }}"><span class="icon"></span> Send Notifications</a>
+</div>
+
+{% if recent_notifs %}
+<div class="card">
+  <h3>Recent Notifications Sent</h3>
+  <table>
+    <thead><tr><th>Date</th><th>Title</th><th>To</th></tr></thead>
+    <tbody>
+    {% for n in recent_notifs %}
+    <tr>
+      <td>{{ n.created_at.strftime('%d %b %Y') if n.created_at else '—' }}</td>
+      <td>{{ n.title }}</td>
+      <td>{{ n.recipient.name if n.recipient else 'All Department' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

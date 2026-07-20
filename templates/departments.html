@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Departments</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            Teacher Dashboard
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <a href="/" class="nav-btn">Personal Information</a>
+                <a href="/departments" class="nav-btn active">Departments</a>
+                <a href="/subjects" class="nav-btn">Subjects</a>
+                <a href="/timetable" class="nav-btn">Timetable</a>
+                <a href="/settings" class="nav-btn">Settings</a>
+            </div>
+
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+
+            <div class="page-title">Departments</div>
+
+            <div class="info-card">
+                <h3>Department List</h3>
+
+                <table class="dept-table">
+                    <thead>
+                        <tr>
+                            <th>Department Name</th>
+                            <th>Head of Department</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept in departments %}
+                        <tr>
+                            <td>{{ dept.name }}</td>
+                            <td>{{ dept.hod_name if dept.hod_name else '—' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2">No departments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,92 @@
+{% extends "hod_base.html" %}
+{% block title %}Inbox — Notifications{% endblock %}
+
+{% block extra_head %}
+<style>
+  .notif-item { background:#fff; border:1px solid #d1d5db; border-radius:10px; padding:14px 18px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .notif-item.unread { border-left:4px solid #0b5ed7; background:#f5f9ff; }
+  .notif-item .notif-body { flex:1; min-width:0; }
+  .notif-item .nt { font-size:15px; font-weight:700; color:#1e293b; margin-bottom:4px; }
+  .notif-item .nm { color:#475569; font-size:13.5px; line-height:1.6; margin-bottom:8px; }
+  .notif-item .nd { font-size:11px; color:#94a3b8; }
+  .notif-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+  .notif-actions form { margin:0; }
+  .btn-mark-read { background:#dbeafe; color:#1e40af; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .btn-del-notif { background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .badge-dept { display:inline-block; background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; margin-right:6px; }
+  .empty-state { text-align:center; padding:60px 20px; color:#94a3b8; }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .clear-btn { background:#fee2e2; color:#dc2626; border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  .clear-btn:hover { background:#fecaca; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title" style="margin-bottom:4px;">Inbox — {{ notifications|length }} Notification{{ 's' if notifications|length != 1 else '' }}</div>
+    <p style="color:#64748b;font-size:13px;margin:0;">All notifications for your account and department</p>
+  </div>
+  {% if notifications %}
+  <form method="POST" action="/notifications/clear" style="margin-top:8px;">
+    <button type="submit" class="clear-btn" onclick="return confirm('Clear all notifications?')">Clear All</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if notifications %}
+{% for n in notifications %}
+<div class="notif-item {% if not n.is_read %}unread{% endif %}" id="notif-{{ n.id }}">
+  <div class="notif-body">
+    <div class="nt">{{ n.title }}</div>
+    <div class="nm">{{ n.message }}</div>
+    <div class="nd">
+      <span class="badge-dept">{{ n.dept_id or 'General' }}</span>
+      {{ n.created_at.strftime('%d %b %Y at %H:%M') if n.created_at else 'Unknown date' }}
+      {% if n.sender %} &bull; <span style="color:#64748b;">From: {{ n.sender.name }}</span>{% endif %}
+      {% if not n.recipient_id %} &bull; <span style="color:#6366f1;">Dept-wide</span>{% endif %}
+    </div>
+  </div>
+  <div class="notif-actions">
+    {% if not n.is_read %}
+    <form method="POST" action="/notifications/mark-read/{{ n.id }}">
+      <button type="submit" class="btn-mark-read">✓ Mark Read</button>
+    </form>
+    {% endif %}
+    <form method="POST" action="/notifications/delete/{{ n.id }}"
+          onsubmit="return confirm('Delete this notification?')">
+      <button type="submit" class="btn-del-notif">✕ Remove</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="empty-state"><p>No notifications yet.</p></div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+let popupOpen = false;
+function togglePopup() { popupOpen = !popupOpen; document.getElementById('notif-popup').style.display = popupOpen ? 'block' : 'none'; if (popupOpen) loadPopup(); }
+function closePopup() { popupOpen = false; document.getElementById('notif-popup').style.display = 'none'; }
+function loadPopup() {
+  authFetch('/api/notifications/popup').then(r=>r.json()).then(data=>{
+    const body=document.getElementById('np-body');
+    const notifs=data.notifications||[];
+    body.innerHTML = notifs.length ? notifs.map(n=>`<div class="np-item"><div class="np-title">${n.title}</div><div class="np-msg">${n.message}</div><div class="np-time">${n.at}</div></div>`).join('') : '<div class="np-empty">No new notifications</div>';
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  authFetch('/api/notifications/popup').then(r=>r.json()).then(data=>{
+    if (data.notifications && data.notifications.length > 0) {
+      loadPopup();
+      document.getElementById('notif-popup').style.display = 'block';
+      popupOpen = true;
+      setTimeout(() => closePopup(), 6000);
+    }
+  });
+});
+</script>
+{% endblock %}
+

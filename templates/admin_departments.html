@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin - Departments</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            width: 420px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-box h3 {
+            margin-top: 0;
+            color: #0b5ed7;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin-bottom: 14px;
+        }
+
+        .modal-box label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 6px;
+        }
+
+        .flash-msg {
+            padding: 10px 16px;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            font-size: 14px;
+        }
+
+        .flash-msg.error {
+            background: #fde8e8;
+            color: #b00020;
+            border: 1px solid #f5c6c6;
+        }
+
+        .flash-msg.success {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #c8e6c9;
+        }
+    </style>
+</head>
+
+<body class="topnav-layout">
+
+    <div class="header">
+        <div class="header-left">
+            Admin Panel
+            <nav class="top-nav" aria-label="Admin navigation">
+                <a href="/admin" class="{% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+                <a href="/admin/departments" class="{% if request.path.startswith('/admin/departments') %}active{% endif %}">Departments</a>
+                <a href="/admin/teachers" class="{% if request.path.startswith('/admin/teachers') %}active{% endif %}">Teachers</a>
+                <a href="/admin/subjects" class="{% if request.path.startswith('/admin/subjects') %}active{% endif %}">Subjects</a>
+                <a href="/admin/timetable/view" class="{% if request.path.startswith('/admin/timetable') %}active{% endif %}">View Timetable</a>
+                <a href="/admin/notifications/page" class="{% if request.path.startswith('/admin/notifications/page') %}active{% endif %}">Notifications</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <a href="/admin" class="nav-btn">Dashboard</a>
+                <a href="/admin/departments" class="nav-btn active">Departments</a>
+                <a href="/admin/teachers" class="nav-btn">Teachers</a>
+                <a href="/admin/subjects" class="nav-btn">Subjects</a>
+                <a href="/admin/timetable/view" class="nav-btn">View Timetable</a>
+                <a href="/admin/notifications/page" class="nav-btn">Notifications</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="page-title">Departments</div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="flash-msg {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endwith %}
+
+            <div class="info-card">
+                <button class="save-btn" onclick="openAddModal()">+ Add Department</button>
+
+                <table class="dept-table">
+                    <tr>
+                        <th>Dept ID</th>
+                        <th>Department Name</th>
+                        <th>HOD</th>
+                        <th>Lab Rooms</th>
+                        <th>Actions</th>
+                    </tr>
+                    {% for dept in departments %}
+                    <tr>
+                        <td>{{ dept.id }}</td>
+                        <td>{{ dept.name }}</td>
+                        <td>{{ dept.hod_name if dept.hod_name else '—' }}</td>
+                        <td title="Number of lab rooms usable at the same time — gates parallel-batch lab scheduling">{{ dept.lab_room_capacity }}</td>
+                        <td>
+                            <button class="edit-btn"
+                                onclick="openEditModal('{{ dept.id }}', '{{ dept.name|e }}', '{{ dept.hod_name|e }}', {{ dept.lab_room_capacity }})">Edit</button>
+                            <form method="POST" action="/admin/department/delete/{{ dept.id }}" style="display:inline"
+                                onsubmit="return confirm('Delete department {{ dept.name }}?')">
+                                <button type="submit" class="cancel-btn">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">No departments found.</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD MODAL -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-box">
+            <h3>Add Department</h3>
+            <form method="POST" action="/admin/department/add">
+                <label>Department ID (e.g. CS, ME)</label>
+                <input type="text" name="id" placeholder="e.g. CE" required>
+                <label>Department Name</label>
+                <input type="text" name="name" placeholder="e.g. Civil Engineering" required>
+                <label>HOD Name</label>
+                <input type="text" name="hod_name" placeholder="e.g. Dr. John Doe">
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal('addModal')">Cancel</button>
+                    <button type="submit" class="save-btn">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box">
+            <h3>Edit Department</h3>
+            <form method="POST" id="editForm" action="">
+                <label>Department Name</label>
+                <input type="text" name="name" id="editName" required>
+                <label>HOD Name</label>
+                <input type="text" name="hod_name" id="editHod">
+                <label>Lab Rooms (usable at the same time)</label>
+                <input type="number" name="lab_room_capacity" id="editLabCapacity" min="1" step="1">
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal('editModal')">Cancel</button>
+                    <button type="submit" class="save-btn">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        function openEditModal(id, name, hod, labCapacity) {
+            document.getElementById('editName').value = name;
+            document.getElementById('editHod').value = hod;
+            document.getElementById('editLabCapacity').value = labCapacity;
+            document.getElementById('editForm').action = '/admin/department/edit/' + id;
+            document.getElementById('editModal').classList.add('open');
+        }
+        // Close on overlay click
+        ['addModal', 'editModal'].forEach(id => {
+            document.getElementById(id).addEventListener('click', function (e) {
+                if (e.target === this) closeModal(id);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

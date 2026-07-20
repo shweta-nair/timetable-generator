@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin - Subjects</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .filter-bar input,
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 0;
+            font-size: 14px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 0;
+            padding: 30px;
+            width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.22);
+            border: 1px solid rgba(0,0,0,0.12);
+        }
+
+        .modal-box h3 {
+            margin-top: 0;
+            color: #0b5ed7;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-box input,
+        .modal-box select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid rgba(0,0,0,0.16);
+            border-radius: 0;
+            font-size: 14px;
+            box-sizing: border-box;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.9), inset -1px -1px 0 rgba(0,0,0,0.06);
+        }
+
+        .modal-box label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .field-group {
+            margin-bottom: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+
+        .flash-msg {
+            padding: 10px 16px;
+            border-radius: 0;
+            margin-bottom: 14px;
+            font-size: 14px;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10);
+        }
+
+        .flash-msg.error {
+            background: #fde8e8;
+            color: #b00020;
+            border: 1px solid #f5c6c6;
+        }
+
+        .flash-msg.success {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #c8e6c9;
+        }
+
+        .type-badge {
+            font-size: 11px;
+            background: #f0f0f0;
+            color: #555;
+            padding: 2px 8px;
+            border-radius: 0;
+            border: 1px solid rgba(0,0,0,0.10);
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.55), inset -1px -1px 0 rgba(0,0,0,0.12);
+        }
+    </style>
+</head>
+
+<body class="topnav-layout">
+
+    <div class="header">
+        <div class="header-left">
+            Admin Panel
+            <nav class="top-nav" aria-label="Admin navigation">
+                <a href="/admin" class="{% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+                <a href="/admin/departments" class="{% if request.path.startswith('/admin/departments') %}active{% endif %}">Departments</a>
+                <a href="/admin/teachers" class="{% if request.path.startswith('/admin/teachers') %}active{% endif %}">Teachers</a>
+                <a href="/admin/subjects" class="{% if request.path.startswith('/admin/subjects') %}active{% endif %}">Subjects</a>
+                <a href="/admin/timetable/view" class="{% if request.path.startswith('/admin/timetable') %}active{% endif %}">View Timetable</a>
+                <a href="/admin/notifications/page" class="{% if request.path.startswith('/admin/notifications/page') %}active{% endif %}">Notifications</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <a href="/admin" class="nav-btn">Dashboard</a>
+                <a href="/admin/departments" class="nav-btn">Departments</a>
+                <a href="/admin/teachers" class="nav-btn">Teachers</a>
+                <a href="/admin/subjects" class="nav-btn active">Subjects</a>
+                <a href="/admin/timetable/view" class="nav-btn">View Timetable</a>
+                <a href="/admin/notifications/page" class="nav-btn">Notifications</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="page-title">Subjects / Courses</div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="flash-msg {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endwith %}
+
+            <div class="info-card">
+                <!-- FILTER BAR -->
+                <form method="GET" action="/admin/subjects" class="filter-bar">
+                    <input type="text" name="search" placeholder="Search by name/code..." value="{{ search }}">
+                    <select name="dept">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if dept.id==dept_filter %}selected{% endif %}>{{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="save-btn">Filter</button>
+                    <a href="/admin/subjects" class="cancel-btn"
+                        style="padding:8px 16px; border-radius:4px; text-decoration:none; display:inline-block; color:white;">Clear</a>
+                    <button type="button" class="save-btn" onclick="openAddModal()" style="margin-left:auto;">+ Add
+                        Course</button>
+                </form>
+
+                <table class="dept-table">
+                    <tr>
+                        <th>Code</th>
+                        <th>Course Name</th>
+                        <th>Student Dept</th>
+                        <th>Teacher Dept</th>
+                        <th>Type</th>
+                        <th>Semester</th>
+                        <th>Actions</th>
+                    </tr>
+                    {% for c in courses %}
+                    <tr>
+                        <td><strong>{{ c.code }}</strong></td>
+                        <td>{{ c.name }}</td>
+                        <td><span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;">{{ c.department or '—' }}</span></td>
+                        <td>{{ c.dept_id or '—' }}</td>
+                        <td><span class="type-badge">{{ c.type or '—' }}</span></td>
+                        <td>{{ c.semester or '—' }}</td>
+                        <td>
+                            <button class="edit-btn" onclick="openEditModal('{{ c.code|e }}', '{{ c.department|e }}')">Edit</button>
+                            <form method="POST" action="/admin/course/delete/{{ c.id }}" style="display:inline"
+                                onsubmit="return confirm('Delete course {{ c.name|e }}?')">
+                                <button type="submit" class="cancel-btn">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7">No courses found.</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD MODAL -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-box">
+            <h3>Add Course</h3>
+            <form method="POST" action="/admin/course/add">
+                <div class="modal-grid">
+                    <div class="field-group">
+                        <label>Course Code *</label>
+                        <input type="text" name="code" placeholder="e.g. CST302" required>
+                    </div>
+                    <div class="field-group">
+                        <label>Department</label>
+                        <select name="dept_id">
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field-group" style="grid-column:1/-1">
+                        <label>Course Name *</label>
+                        <input type="text" name="name" placeholder="e.g. Data Structures and Algorithms" required>
+                    </div>
+                    <div class="field-group">
+                        <label>Type</label>
+                        <select name="type">
+                            <option value="">Select</option>
+                            <option>CORE</option>
+                            <option>ELECTIVE</option>
+                            <option>LAB</option>
+                            <option>placement</option>
+                            <option>PROJECT</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Hours/Week (L-T-P-R)</label>
+                        <input type="text" name="hours_per_week" placeholder="e.g. 3-0-2-0">
+                    </div>
+                    <div class="field-group">
+                        <label>Semester</label>
+                        <input type="text" name="semester" placeholder="e.g. 5">
+                    </div>
+                    <div class="field-group">
+                        <label>Division(s)</label>
+                        <input type="text" name="division" placeholder="e.g. CS1,CS2">
+                    </div>
+                    <div class="field-group">
+                        <label>Revision Year</label>
+                        <input type="text" name="revision" placeholder="e.g. 2024">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal('addModal')">Cancel</button>
+                    <button type="submit" class="save-btn">Add Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box">
+            <h3>Edit Course</h3>
+            <form method="POST" id="editForm" action="">
+                <!-- hidden id field – populated by JS -->
+                <input type="hidden" name="_course_id" id="eCId">
+                <div class="modal-grid">
+                    <div class="field-group" style="grid-column:1/-1">
+                        <label>Course Code</label>
+                        <input type="text" id="eCCode" disabled style="background:#f1f5f9;color:#64748b;">
+                    </div>
+                    <div class="field-group" style="grid-column:1/-1">
+                        <label>Course Name *</label>
+                        <input type="text" name="name" id="eCName" required>
+                    </div>
+                    <div class="field-group">
+                        <label>Student Department</label>
+                        <select name="department" id="eCStudentDept">
+                            <option value="">Select</option>
+                            <option value="AIDS">AIDS</option>
+                            <option value="AU">AU – Automobile</option>
+                            <option value="CE">CE – Civil</option>
+                            <option value="CS">CS – Computer Science</option>
+                            <option value="EC">EC – Electronics</option>
+                            <option value="EE">EE – Electrical</option>
+                            <option value="ME">ME – Mechanical</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Teacher Dept (DEPT_ID)</label>
+                        <input type="text" name="dept_id" id="eCDeptId" placeholder="e.g. BSH, ME">
+                    </div>
+                    <div class="field-group">
+                        <label>Type</label>
+                        <select name="type" id="eCType">
+                            <option value="">Select</option>
+                            <option>CORE</option>
+                            <option>ELECTIVE</option>
+                            <option>LAB</option>
+                            <option>placement</option>
+                            <option>PROJECT</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Hours/Week (L-T-P-R)</label>
+                        <input type="text" name="hours_per_week" id="eCHours">
+                    </div>
+                    <div class="field-group">
+                        <label>Semester</label>
+                        <input type="text" name="semester" id="eCsem">
+                    </div>
+                    <div class="field-group">
+                        <label>Division(s)</label>
+                        <input type="text" name="division" id="eCDiv">
+                    </div>
+                    <div class="field-group">
+                        <label>Revision Year</label>
+                        <input type="text" name="revision" id="eCRev">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal('editModal')">Cancel</button>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        // code = course code, dept = student department
+        function openEditModal(code, dept) {
+            const url = '/admin/course/get/' + encodeURIComponent(code) + (dept ? '?dept=' + encodeURIComponent(dept) : '');
+            fetch(url)
+                .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
+                .then(c => {
+                    document.getElementById('eCId').value         = c.id;
+                    document.getElementById('eCCode').value       = c.code;
+                    document.getElementById('eCName').value       = c.name;
+                    document.getElementById('eCDeptId').value     = c.dept_id || '';
+                    document.getElementById('eCHours').value      = c.hours_per_week || '';
+                    document.getElementById('eCsem').value        = c.semester || '';
+                    document.getElementById('eCDiv').value        = c.division || '';
+                    document.getElementById('eCRev').value        = c.revision || '';
+                    setSelectValue('eCStudentDept', c.department);
+                    setSelectValue('eCType', c.type);
+                    // Set the form POST action to /admin/course/edit/<id>
+                    document.getElementById('editForm').action = '/admin/course/edit/' + c.id;
+                    document.getElementById('editModal').classList.add('open');
+                })
+                .catch(err => alert('Could not load course details: ' + err.message));
+        }
+
+        function setSelectValue(selectId, value) {
+            const sel = document.getElementById(selectId);
+            if (!sel || !value) return;
+            for (let opt of sel.options) {
+                if (opt.value === value || opt.text.startsWith(value)) {
+                    opt.selected = true;
+                    break;
+                }
+            }
+        }
+
+        ['addModal', 'editModal'].forEach(id => {
+            document.getElementById(id).addEventListener('click', function(e) {
+                if (e.target === this) closeModal(id);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

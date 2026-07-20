@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Admin - Timetable</title>
+    <script>
+        // Shared fetch wrapper (was called across this page's JS but never defined
+        // anywhere in the codebase — every call threw "authFetch is not defined").
+        function authFetch(url, options) {
+            options = options || {};
+            if (!('credentials' in options)) options.credentials = 'same-origin';
+            return fetch(url, options);
+        }
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .timetable-section {
+            overflow-x: auto;
+        }
+
+        .timetable-header-info {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        .timetable-header-info h2 {
+            margin: 0;
+            font-size: 17px;
+            color: #0b5ed7;
+        }
+
+        .timetable-header-info p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .no-timetable {
+            text-align: center;
+            padding: 40px 0;
+            color: #888;
+            font-size: 15px;
+            font-style: italic;
+        }
+
+        .download-btn {
+            background: #198754;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .download-btn:hover {
+            background: #157347;
+        }
+
+        /* Subject mapping table */
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .mapping-table th,
+        .mapping-table td {
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .mapping-table th {
+            background: #eef4ff;
+            color: #0b5ed7;
+            font-weight: 600;
+        }
+
+        @media print {
+            .header, .sidebar, .filter-bar, .page-title, .download-btn, .no-print {
+                display: none !important;
+            }
+
+            .layout { display: block; }
+            .content { padding: 0; }
+            .info-card { box-shadow: none; border: none; padding: 10px 0; }
+            .timetable-table th, .timetable-table td { font-size: 11px; padding: 6px; }
+        }
+    </style>
+</head>
+
+<body class="topnav-layout">
+
+    <div class="header">
+        <div class="header-left">
+            Admin Panel
+            <nav class="top-nav" aria-label="Admin navigation">
+                <a href="/admin" class="{% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+                <a href="/admin/departments" class="{% if request.path.startswith('/admin/departments') %}active{% endif %}">Departments</a>
+                <a href="/admin/teachers" class="{% if request.path.startswith('/admin/teachers') %}active{% endif %}">Teachers</a>
+                <a href="/admin/subjects" class="{% if request.path.startswith('/admin/subjects') %}active{% endif %}">Subjects</a>
+                <a href="/admin/timetable/view" class="{% if request.path.startswith('/admin/timetable') %}active{% endif %}">View Timetable</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <a href="/admin" class="nav-btn">Dashboard</a>
+                <a href="/admin/departments" class="nav-btn">Departments</a>
+                <a href="/admin/teachers" class="nav-btn">Teachers</a>
+                <a href="/admin/subjects" class="nav-btn">Subjects</a>
+                <a href="/admin/timetable/view" class="nav-btn active">View Timetable</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="page-title no-print">Timetable Viewer</div>
+
+            <!-- SELECTION CARD -->
+            <div class="info-card no-print">
+                <h3>Select Class / Division</h3>
+                <form method="GET" action="/admin/timetable">
+                    <div class="filter-bar">
+                        <select name="dept_id" id="deptSelect" onchange="loadClasses(this.value)">
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}" {% if dept.id == selected_dept %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+
+                        <select name="division" id="classSelect">
+                            <option value="">Select Class / Division</option>
+                            {% for cls in classes %}
+                            <option value="{{ cls }}" {% if cls == selected_division %}selected{% endif %}>{{ cls }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <button type="submit" class="save-btn">View Timetable</button>
+
+                        {% if timetable_data %}
+                        <button type="button" class="download-btn" onclick="window.print()">⬇ Download PDF</button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
+            <!-- TIMETABLE DISPLAY -->
+            <div class="info-card" id="timetableCard">
+
+                {% if timetable_meta %}
+                <div class="timetable-header-info">
+                    <h2>
+                        {% for dept in departments %}{% if dept.id == selected_dept %}{{ dept.name }}{% endif %}{% endfor %}
+                        {% if timetable_meta.semester %}(S{{ timetable_meta.semester }}){% endif %}
+                        &nbsp;–&nbsp; {{ selected_division }}
+                    </h2>
+                    {% if timetable_meta.effective_date %}
+                    <p>Time Table w.e.f {{ timetable_meta.effective_date }}</p>
+                    {% endif %}
+                </div>
+                {% elif selected_dept and selected_division %}
+                <h3>Timetable</h3>
+                {% else %}
+                <h3>Timetable</h3>
+                {% endif %}
+
+                <div class="timetable-section">
+                    <table class="timetable-table">
+                        <thead>
+                            <tr class="time-row">
+                                <th>Day / Period</th>
+                                <th>Period 1<br><small>8:45–9:45</small></th>
+                                <th>Period 2<br><small>9:45–10:45</small></th>
+                                <th>Period 3<br><small>11:00–12:00</small></th>
+                                <th style="background:#fff3cd; color:#856404;">Lunch Break<br><small>12:00–12:45</small></th>
+                                <th>Period 4<br><small>12:45–1:40</small></th>
+                                <th>Period 5<br><small>1:40–2:35</small></th>
+                                <th>Period 6<br><small>2:50–3:45</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] %}
+                            {% set day_keys = ['mon', 'tue', 'wed', 'thu', 'fri'] %}
+                            {% set period_keys = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'] %}
+                            {% for i in range(5) %}
+                            {% set day = days[i] %}
+                            {% set dk = day_keys[i] %}
+                            <tr>
+                                <th>{{ day }}</th>
+                                {% for p in period_keys %}
+                                    {% if loop.index0 == 3 %}
+                                    <td class="lunch" style="background:#fff3cd; font-weight:600; font-size:12px;">LUNCH BREAK</td>
+                                    {% endif %}
+                                <td>
+                                    {% if timetable_data and timetable_data.get(dk) and timetable_data[dk].get(p) %}
+                                        {{ timetable_data[dk][p] }}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if not timetable_data %}
+                {% if selected_dept and selected_division %}
+                <p class="no-timetable">No timetable has been generated yet for this class.<br>Timetable generation will be enabled in a future step.</p>
+                {% else %}
+                <p class="note">Select a department and class above to view the timetable.</p>
+                {% endif %}
+                {% endif %}
+
+                {% if timetable_data and timetable_data.get('subject_map') %}
+                <div style="margin-top: 24px;">
+                    <h3>Subject Reference</h3>
+                    <table class="mapping-table">
+                        <tr>
+                            <th>Short Code</th>
+                            <th>Course Code</th>
+                            <th>Course Name</th>
+                            <th>Faculty Initial</th>
+                            <th>Faculty Name</th>
+                        </tr>
+                        {% for entry in timetable_data.subject_map %}
+                        <tr>
+                            <td>{{ entry.short_code }}</td>
+                            <td>{{ entry.course_code }}</td>
+                            <td>{{ entry.course_name }}</td>
+                            <td>{{ entry.faculty_initial }}</td>
+                            <td>{{ entry.faculty_name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadClasses(deptId) {
+            const classSelect = document.getElementById('classSelect');
+            classSelect.innerHTML = '<option value="">Loading...</option>';
+            if (!deptId) {
+                classSelect.innerHTML = '<option value="">Select Class / Division</option>';
+                return;
+            }
+            authFetch('/api/classes?dept_id=' + deptId)
+                .then(r => r.json())
+                .then(classes => {
+                    classSelect.innerHTML = '<option value="">Select Class / Division</option>';
+                    classes.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c;
+                        opt.textContent = c;
+                        classSelect.appendChild(opt);
+                    });
+                });
+        }
+    </script>
+
+</body>
+
+</html>

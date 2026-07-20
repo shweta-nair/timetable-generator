@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin – Notifications</title>
+    <script>
+        // Shared fetch wrapper (was called across this page's JS but never defined
+        // anywhere in the codebase — every call threw "authFetch is not defined").
+        function authFetch(url, options) {
+            options = options || {};
+            if (!('credentials' in options)) options.credentials = 'same-origin';
+            return fetch(url, options);
+        }
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-title { font-size: 20px; font-weight: 800; color: #1a2e35; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .notif-item { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; display: flex; gap: 12px; align-items: flex-start; transition: box-shadow 0.2s; }
+        .notif-item.hod-action { border-left: 4px solid #c4b5fd; background: #faf5ff; }
+        .notif-item:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.09); }
+        .notif-item.unread { border-left: 5px solid #0b5ed7; background: #f5f9ff; }
+        .notif-item.unread.hod-action { border-left: 4px solid #7c3aed; background: #f3e8ff; }
+        .notif-body { flex: 1; min-width: 0; }
+        .nt { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 5px; }
+        .nm { color: #475569; font-size: 13.5px; line-height: 1.6; margin-bottom: 10px; }
+        .nd { font-size: 11px; color: #94a3b8; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+        .notif-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+        .btn-read { background: #dbeafe; color: #1e40af; border: none; border-radius: 6px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .btn-del  { background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; background: #fff; border: 1px dashed #d1d5db; border-radius: 8px; }
+        .flash-msg { padding: 10px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
+        .flash-msg.success { background: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
+        .flash-msg.error   { background: #fde8e8; color: #b00020; border: 1px solid #f5c6c6; }
+    </style>
+</head>
+<body class="topnav-layout">
+
+    <div class="header">
+        <div class="header-left">
+            Admin Panel
+            <nav class="top-nav" aria-label="Admin navigation">
+                <a href="/admin"              class="{% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+                <a href="/admin/departments"  class="{% if request.path.startswith('/admin/departments') %}active{% endif %}">Departments</a>
+                <a href="/admin/teachers"     class="{% if request.path.startswith('/admin/teachers') %}active{% endif %}">Teachers</a>
+                <a href="/admin/subjects"     class="{% if request.path.startswith('/admin/subjects') %}active{% endif %}">Subjects</a>
+                <a href="/admin/timetable/view" class="{% if request.path.startswith('/admin/timetable') %}active{% endif %}">View Timetable</a>
+                <a href="/admin/notifications/page" class="{% if request.path.startswith('/admin/notifications/page') %}active{% endif %}">Notifications</a>
+            </nav>
+        </div>
+        <div class="header-right" style="display:flex;align-items:center;gap:16px;">
+            <div style="position:relative;">
+              <button id="adminBell" onclick="toggleAdminNotif()" style="background:rgba(233,242,255,0.70);border:1px solid rgba(150,189,198,0.35);color:#1a2e35;padding:6px 10px;border-radius:10px;cursor:pointer;font-size:16px;position:relative;">
+                🔔 <span id="adminBellBadge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:none;align-items:center;justify-content:center;"></span>
+              </button>
+            </div>
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <a href="/admin" class="nav-btn">Dashboard</a>
+                <a href="/admin/departments" class="nav-btn">Departments</a>
+                <a href="/admin/teachers" class="nav-btn">Teachers</a>
+                <a href="/admin/subjects" class="nav-btn">Subjects</a>
+                <a href="/admin/timetable/view" class="nav-btn">View Timetable</a>
+                <a href="/admin/notifications/page" class="nav-btn active">Notifications</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+            <div class="flash-msg {{ cat }}">{{ msg }}</div>
+            {% endfor %}
+            {% endwith %}
+
+            <div class="page-title">
+                <div>
+                    Notifications
+                    <div style="font-size:13px;font-weight:500;color:#64748b;margin-top:4px;">
+                        {{ notifications|length }} notification{{ 's' if notifications|length != 1 else '' }}
+                        ({{ notifications|selectattr('is_read','equalto',False)|list|length }} unread)
+                    </div>
+                </div>
+                {% if notifications %}
+                <div style="display:flex;gap:8px;">
+                    <form method="POST" action="/admin/notifications/mark-all-read" style="margin:0;">
+                        <button type="submit" style="background:#dbeafe;color:#1e40af;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">✓ Mark All Read</button>
+                    </form>
+                    <button onclick="clearAllAdminNotifPage()" style="background:#fee2e2;color:#dc2626;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Clear All</button>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if notifications %}
+            {% for n in notifications %}
+            {% set is_hod_action = 'HOD' in n.title or 'Teacher' in n.title or 'Subject' in n.title %}
+            <div class="notif-item {% if not n.is_read %}unread{% endif %} {% if is_hod_action %}hod-action{% endif %}" id="notif-{{ n.id }}">
+                <div class="notif-body">
+                    <div class="nt" style="{% if is_hod_action %}color:#4c1d95;{% endif %}">{{ n.title }}</div>
+                    <div class="nm">{{ n.message }}</div>
+                    <div class="nd">
+                        <span class="badge" style="{% if is_hod_action %}background:#ede9fe;color:#5b21b6;{% endif %}">{{ n.dept_id or 'System' }}</span>
+                        <span>{{ n.created_at.strftime('%d %b %Y at %H:%M') if n.created_at else 'Unknown date' }}</span>
+                        {% if n.sender %}<span>By: <strong>{{ n.sender.name }}</strong></span>{% endif %}
+                        {% if not n.is_read %}<span style="color:#f59e0b;font-weight:700;">● Unread</span>{% endif %}
+                    </div>
+                </div>
+                <div class="notif-actions">
+                    {% if not n.is_read %}
+                    <form method="POST" action="/admin/notifications/mark-read/{{ n.id }}" style="margin:0;">
+                        <button type="submit" class="btn-read">✓ Mark Read</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="/notifications/delete/{{ n.id }}" style="margin:0;"
+                          onsubmit="document.getElementById('notif-{{ n.id }}').style.display='none'; return true;">
+                        <button type="submit" class="btn-del">✕ Remove</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <div style="font-size:40px;margin-bottom:12px;">📭</div>
+                <p>No notifications.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+<script>
+let adminPanelOpen = false;
+function toggleAdminNotif() {
+    adminPanelOpen = !adminPanelOpen;
+    window.location.href = '/admin/notifications/page';
+}
+function updateAdminBadge(cnt) {
+    const badge = document.getElementById('adminBellBadge');
+    badge.textContent = cnt;
+    badge.style.display = cnt > 0 ? 'flex' : 'none';
+}
+function clearAllAdminNotifPage() {
+    if (!confirm('Clear all notifications from your view?')) return;
+    authFetch('/admin/notifications/clear', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}})
+        .then(() => { window.location.reload(); });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    authFetch('/admin/notifications').then(r=>r.json()).then(data=>{
+        const cnt = (data.notifications||[]).filter(n=>!n.read).length;
+        updateAdminBadge(cnt);
+    }).catch(()=>{});
+});
+</script>
+</body>
+</html>

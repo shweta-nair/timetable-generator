@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Register – Timetable System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #5E8E9A;
+            --primary-hover: #3a6672;
+            --ink: #1a2e35;
+            --card-bg: rgba(255,255,255,0.86);
+            --border: rgba(255,255,255,0.35);
+            --focus-ring: rgba(150,189,198,0.28);
+            --mx: 50%;
+            --my: 50%;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+        
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            background: #F2F8FA;
+            padding: 40px 20px;
+            overflow: hidden;
+        }
+
+        body::before{
+            content:"";
+            position: fixed;
+            inset: 0;
+            background:
+              linear-gradient(180deg, rgba(8,20,34,0.58) 0%, rgba(8,20,34,0.30) 55%, rgba(8,20,34,0.16) 100%),
+              url("{{ url_for('static', filename='auth_rings.png') }}");
+            background-size: cover;
+            background-position: center;
+            filter: saturate(1.05) contrast(1.02);
+            transform: translate3d(0,0,0);
+            z-index: 0;
+        }
+
+        body::after{
+            content:"";
+            position: fixed;
+            inset: -10%;
+            background:
+              radial-gradient(circle at var(--mx) var(--my),
+                rgba(240,223,138,0.24) 0%,
+                rgba(150,189,198,0.18) 16%,
+                rgba(150,189,198,0.00) 42%),
+              repeating-radial-gradient(circle at var(--mx) var(--my),
+                rgba(255,255,255,0.12) 0 2px,
+                rgba(255,255,255,0.00) 2px 12px);
+            mix-blend-mode: overlay;
+            opacity: 0.65;
+            animation: ringVibe 2.8s ease-in-out infinite;
+            will-change: transform;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes ringVibe{
+            0%   { transform: translate3d(-0.6%,  0.2%, 0) rotate(-0.25deg) scale(1.01); }
+            50%  { transform: translate3d( 0.6%, -0.2%, 0) rotate( 0.25deg) scale(1.02); }
+            100% { transform: translate3d(-0.6%,  0.2%, 0) rotate(-0.25deg) scale(1.01); }
+        }
+
+        .register-wrapper {
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .login-box { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 14px; 
+            box-shadow: 0 18px 55px rgba(0,0,0,0.26);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(16px) saturate(1.4);
+            -webkit-backdrop-filter: blur(16px) saturate(1.4);
+            animation: popIn 0.55s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        @keyframes popIn{
+            from{ opacity: 0; transform: translateY(14px) scale(0.985); }
+            to  { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .header-content {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-box h2 { 
+            color: var(--ink); 
+            font-weight: 700;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .login-box p.sub { 
+            color: rgba(26,46,53,0.68); 
+            font-size: 14px; 
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .login-box label { 
+            display: block; 
+            font-weight: 500; 
+            color: rgba(26,46,53,0.88); 
+            margin-bottom: 6px; 
+            font-size: 14px; 
+        }
+        
+        .login-box label span.req { color: #dc2626; }
+        
+        .login-box input, .login-box select { 
+            width: 100%; 
+            padding: 12px 14px; 
+            border: 1px solid rgba(255,255,255,0.42); 
+            border-radius: 10px; 
+            font-size: 14px; 
+            color: var(--ink);
+            transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            background: rgba(255,255,255,0.82);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+            height: 46px;
+        }
+        
+        .login-box input:focus, .login-box select:focus { 
+            outline: none; 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 3px var(--focus-ring), 0 10px 22px rgba(0,0,0,0.10); 
+            background: rgba(255,255,255,0.92);
+        }
+
+        .login-box button { 
+            width: 100%; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 10px; 
+            font-size: 15px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
+            margin-top: 24px;
+            box-shadow: 0 10px 26px rgba(58,102,114,0.24);
+        }
+        
+        .login-box button:hover { 
+            background: var(--primary-hover); 
+        }
+        
+        .login-box button:active {
+            transform: translateY(1px);
+            box-shadow: 0 6px 18px rgba(58,102,114,0.22);
+        }
+        
+        .login-box .links { 
+            text-align: center; 
+            margin-top: 24px; 
+            font-size: 14px; 
+            color: var(--text-muted);
+        }
+        
+        .login-box .links a { 
+            color: var(--primary); 
+            text-decoration: none; 
+            font-weight: 500;
+        }
+        
+        .login-box .links a:hover {
+            text-decoration: underline;
+        }
+
+        .flash-msg-container {
+            margin-bottom: 20px;
+        }
+        
+        .flash-msg { 
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .flash-msg.error { 
+            background: #fef2f2; 
+            color: #991b1b; 
+            border: 1px solid #fecaca; 
+        }
+        
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .login-box {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-wrapper">
+        <div class="flash-msg-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                    {% if category == 'error' %}⚠️{% else %}✅{% endif %}
+                    {{ message }}
+                </div>
+              {% endfor %}
+            {% endwith %}
+        </div>
+
+        <div class="login-box">
+            <div class="header-content">
+                <h2>Create an Account</h2>
+                <p class="sub">Register as a new teacher in the timetable system</p>
+            </div>
+
+            <form method="POST" action="/register">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Full Name <span class="req">*</span></label>
+                        <input type="text" name="name" placeholder="Dr. John Doe" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Username <span class="req">*</span></label>
+                        <input type="text" name="username" placeholder="johndoe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email Address <span class="req">*</span></label>
+                        <input type="email" name="email" placeholder="john@example.edu" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password <span class="req">*</span></label>
+                        <input type="password" name="password" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Department</label>
+                        <select name="dept_id">
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <select name="designation">
+                            <option value="">Select Designation</option>
+                            <option>Professor</option>
+                            <option>Associate Professor</option>
+                            <option>Assistant Professor</option>
+                            <option>Lecturer</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select name="gender">
+                            <option value="">Select Gender</option>
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Experience (years)</label>
+                        <input type="text" name="experience" placeholder="e.g. 5">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Date of Joining</label>
+                        <input type="date" name="date_of_joining" style="font-family: 'Inter', sans-serif;">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Area of Specialization</label>
+                        <input type="text" name="area_of_specialization" placeholder="e.g. Machine Learning">
+                    </div>
+                </div>
+
+                <button type="submit">Complete Registration</button>
+            </form>
+
+            <div class="links">
+                Already have an account? <a href="/login">Sign In</a>
+            </div>
+        </div>
+    </div>
+    <script>
+      (function () {
+        const root = document.documentElement;
+        let tx = 0.5, ty = 0.5;
+        let cx = 0.5, cy = 0.5;
+
+        function onMove(e){
+          const w = window.innerWidth || 1;
+          const h = window.innerHeight || 1;
+          cx = Math.min(1, Math.max(0, e.clientX / w));
+          cy = Math.min(1, Math.max(0, e.clientY / h));
+        }
+
+        window.addEventListener('mousemove', onMove, { passive: true });
+        window.addEventListener('touchmove', (e) => {
+          const t = e.touches && e.touches[0];
+          if (t) onMove(t);
+        }, { passive: true });
+
+        function tick(){
+          tx += (cx - tx) * 0.10;
+          ty += (cy - ty) * 0.10;
+          const t = performance.now() / 1000;
+          const vib = 0.012;
+          const vx = Math.sin(t * 7.2) * vib;
+          const vy = Math.cos(t * 6.6) * vib;
+          root.style.setProperty('--mx', ((tx + vx) * 100).toFixed(2) + '%');
+          root.style.setProperty('--my', ((ty + vy) * 100).toFixed(2) + '%');
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })();
+    </script>
+</body>
+</html>

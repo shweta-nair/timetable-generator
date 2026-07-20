@@ -1,0 +1,133 @@
+department,division,semester,subject_code,subject_name,type,hours_db,required_periods,scheduled_periods,missing_periods
+AIDS,ai,7,CET445,Natural Disasters and Mitigation,MNC (Core),4-0-0-0,4,0,4
+AIDS,ai,7,MCN401,Industrial Safety Engineering,HSMC (Core),3-0-0-0,3,0,3
+AIDS,ai,7,AIL 411,Deep Learning Lab,PCC (Lab),0-0-3-0,3,0,3
+AIDS,ai,7,CAQ 413,Seminar,PCC (Core),0-0-6-0,6,0,6
+AIDS,ai,7,CAD 415,Project Phase I,PCC (Core),0-0-3-0,3,0,3
+AIDS,ai,7,AIT 402,Robotic Process Automation,PCC (Core),6-0-0-0,6,0,6
+AIDS,ai,7,AIT 414,Elective-III AI for Cyber Security,PEC (Core),4-0-0-0,4,0,4
+AIDS,ai,8,AIT 476,Elective-IV Bio-Inspired Optimization Techniques,PEC (Core),13-0-0-0,13,0,13
+AIDS,ai,8,CST 428,Elective-V Blockchain Technologies,PEC (Core),4-0-0-0,4,0,4
+AIDS,ai,8,CAT 404,Comprehensive Course Work,PCC (Core),1-0-0-0,1,0,1
+AIDS,ai,8,CAD 416,Project Phase II,PCC (Core),11-0-0-0,11,0,11
+AIDS,ds,7,CET445,Natural Disasters and Mitigation,MNC (Core),4-0-0-0,4,0,4
+AIDS,ds,7,MCN401,Industrial Safety Engineering,HSMC (Core),3-0-0-0,3,0,3
+AIDS,ds,7,CAQ 413,Seminar,PCC (Core),0-0-6-0,6,0,6
+AIDS,ds,7,CAD 415,Project Phase I,PCC (Core),0-0-3-0,3,0,3
+AIDS,ds,7,CDT401,Concepts in Cloud Computing,PCC (Core),4-1-0-0,5,0,5
+AIDS,ds,7,CDT423,Program Elective  II-Concepts in Artificial Intelligence,PCC (Core),4-1-0-0,5,0,5
+AIDS,ds,7,CDL411,Cloud Computing Lab,PCC (Lab),0-0-3-0,3,0,3
+AIDS,ds,8,CST 428,Elective-V Blockchain Technologies,PEC (Core),4-0-0-0,4,0,4
+AIDS,ds,8,CAT 404,Comprehensive Course Work,PCC (Core),1-0-0-0,1,0,1
+AIDS,ds,8,CAD 416,Project Phase II,PCC (Core),11-0-0-0,11,0,11
+AIDS,ds,8,CDT 402,Deep Learning for Data Science,PCC (Core),5-0-0-0,5,0,5
+AIDS,ds,8,CST444,Elective III Soft Computing,PEC (Core),4-0-0-0,4,0,4
+AIDS,ds,8,CST466,Elective IV Data Mining,PEC (Core),4-0-0-0,4,0,4
+AU,AUTO,7,AUT401,Advanced IC Engines,CORE,6-0-0-0,6,0,6
+AU,AUTO,7,AUT413,Alternate Energy Sources for Automobile,ELECTIVE,6-0-0-0,6,0,6
+AU,AUTO,7,AUL411,Automobile Lab IV,LAB,0-0-3-0,3,0,3
+AU,AUTO,7,MCN401,Industrial Safety Engineering,CORE,4-0-0-0,4,0,4
+AU,AUTO,7,CET445,Natural Disasters and Mitigation,CORE,4-0-0-0,4,0,4
+AU,AUTO,7,AUD415,Project Phase I,LAB,0-0-3-0,3,0,3
+AU,AUTO,7,AUQ413,Seminar,SEMINAR,3-0-0-0,3,0,3
+AU,AUTO,8,AUT404,Comprehensive Course Viva,CORE,2-0-0-0,2,0,2
+AU,AUTO,8,AUT414,Elective-III Special Types of Vehicles,CORE,4-0-0-0,4,0,4
+AU,AUTO,8,AUT426,Elective-IV Automotive Comfort and Safety Engineering,CORE,4-0-0-0,4,0,4
+AU,AUTO,8,AUT428,Elective-V Vehicle Body Engineering and Safety,CORE,3-0-0-0,3,0,3
+AU,AUTO,8,AUD416,Project Phase II,LAB,0-0-11-0,11,0,11
+AU,AUTO,8,AUT402,Vehicle Dynamics,CORE,5-0-0-0,5,0,5
+CE,CIVIL,7,CET401,Design of Steel Structures,CORE,5-0-0-0,5,0,5
+CE,CIVIL,7,CET423,Ground Improvement Techniques,CORE,4-0-0-0,4,0,4
+CE,CIVIL,7,MET445,Renewable Energy Engineering,CORE,4-0-0-0,4,0,4
+CE,CIVIL,7,MCN401,Industrial Safety Engineering,CORE,3-1-0-0,4,0,4
+CE,CIVIL,7,CEL411,Environmental Engineering Lab,LAB,0-0-3-0,3,0,3
+CE,CIVIL,7,CEQ413,Seminar,SEMINAR,0-0-3-0,3,0,3
+CE,CIVIL,7,CED415,Project Phase I,LAB,0-0-6-0,6,0,6
+CE,CIVIL,8,CET402,Quantity Surveying & Valuation,CORE,4-0-0-0,4,0,4
+CE,CIVIL,8,CET464,Elective III Air Quality Management,PEC (Core),4-0-0-0,4,0,4
+CE,CIVIL,8,CET476,Elective IV Building Services,PEC (Core),4-0-0-0,4,0,4
+CE,CIVIL,8,CET438,"Elective V Airport, Seaport and Harbour Engineering",PEC (Core),4-0-0-0,4,0,4
+CE,CIVIL,8,CET404,Comprehensive Course Viva,CORE,2-0-0-0,2,0,2
+CE,CIVIL,8,CED416,Project Phase II,LAB,0-0-11-0,11,0,11
+CS,CS1,7,CSQ413,Seminar,SEMINAR,6-0-0-0,6,0,6
+CS,CS1,7,CST 401,Artificial Intelligence,CORE,2-0-0-0,2,0,2
+CS,CS1,7,CST413,Program Elective II-Machine Learning,PEC (Elective),2-0-0-0,2,0,2
+CS,CS1,7,CST423,Program Elective II-Cloud Computing,PEC (Elective),2-0-0-0,2,0,2
+CS,CS1,7,MCN401,Industrial Safety Engineering,CORE,2-0-0-0,2,0,2
+CS,CS1,7,CSD 416,Project Phase II,LAB,11-1-0-1,13,0,13
+CS,CS1,7,CST 424,Program Elective III- Programming Paradigms,PEC (Elective),2-0-0-0,2,0,2
+CS,CS1,7,CST 444,Program Elective III-Soft Computing,PEC (Elective),2-0-0-0,2,0,2
+CS,CS1,8,CST402,Distributed Computing,CORE,7-0-0-0,7,0,7
+CS,CS1,8,CST404,Comprehensive Course Work,CORE,2-0-0-0,2,0,2
+CS,CS1,8,CST466,Program Elective IV-Data Mining,PEC (Elective),5-0-0-0,5,0,5
+CS,CS1,8,CST426,Program Elective IV-Client Server Architecture,PEC (Elective),5-0-0-0,5,0,5
+CS,CS1,8,CST 428,Program Elective V- Block Chain Technologies,PEC (Elective),5-0-0-0,5,0,5
+CS,CS1,8,CST448,Program Elective V- Internet of Things,PEC (Elective),5-0-0-0,5,0,5
+CS,CS2,7,CSQ413,Seminar,SEMINAR,6-0-0-0,6,0,6
+CS,CS2,7,CST 401,Artificial Intelligence,CORE,2-0-0-0,2,0,2
+CS,CS2,7,CST413,Program Elective II-Machine Learning,PEC (Elective),2-0-0-0,2,0,2
+CS,CS2,7,CST423,Program Elective II-Cloud Computing,PEC (Elective),2-0-0-0,2,0,2
+CS,CS2,7,MCN401,Industrial Safety Engineering,CORE,2-0-0-0,2,0,2
+CS,CS2,7,CSD 416,Project Phase II,LAB,11-1-0-1,13,0,13
+CS,CS2,7,CST 424,Program Elective III- Programming Paradigms,PEC (Elective),2-0-0-0,2,0,2
+CS,CS2,7,CST 444,Program Elective III-Soft Computing,PEC (Elective),2-0-0-0,2,0,2
+CS,CS2,8,CST402,Distributed Computing,CORE,7-0-0-0,7,0,7
+CS,CS2,8,CST404,Comprehensive Course Work,CORE,2-0-0-0,2,0,2
+CS,CS2,8,CST466,Program Elective IV-Data Mining,PEC (Elective),5-0-0-0,5,0,5
+CS,CS2,8,CST426,Program Elective IV-Client Server Architecture,PEC (Elective),5-0-0-0,5,0,5
+CS,CS2,8,CST 428,Program Elective V- Block Chain Technologies,PEC (Elective),5-0-0-0,5,0,5
+CS,CS2,8,CST448,Program Elective V- Internet of Things,PEC (Elective),5-0-0-0,5,0,5
+CS,CS3,7,CSQ413,Seminar,SEMINAR,6-0-0-0,6,0,6
+CS,CS3,7,CST 401,Artificial Intelligence,CORE,2-0-0-0,2,0,2
+CS,CS3,7,CST413,Program Elective II-Machine Learning,PEC (Elective),2-0-0-0,2,0,2
+CS,CS3,7,CST423,Program Elective II-Cloud Computing,PEC (Elective),2-0-0-0,2,0,2
+CS,CS3,7,MCN401,Industrial Safety Engineering,CORE,2-0-0-0,2,0,2
+CS,CS3,7,CSD 416,Project Phase II,LAB,11-1-0-1,13,0,13
+CS,CS3,7,CST 424,Program Elective III- Programming Paradigms,PEC (Elective),2-0-0-0,2,0,2
+CS,CS3,7,CST 444,Program Elective III-Soft Computing,PEC (Elective),2-0-0-0,2,0,2
+CS,CS3,8,CST402,Distributed Computing,CORE,7-0-0-0,7,0,7
+CS,CS3,8,CST404,Comprehensive Course Work,CORE,2-0-0-0,2,0,2
+CS,CS3,8,CST466,Program Elective IV-Data Mining,PEC (Elective),5-0-0-0,5,0,5
+CS,CS3,8,CST426,Program Elective IV-Client Server Architecture,PEC (Elective),5-0-0-0,5,0,5
+CS,CS3,8,CST 428,Program Elective V- Block Chain Technologies,PEC (Elective),5-0-0-0,5,0,5
+CS,CS3,8,CST448,Program Elective V- Internet of Things,PEC (Elective),5-0-0-0,5,0,5
+EC,EC,7,ECT401,Microwaves and Antennas,CORE,3-0-0-0,3,0,3
+EC,EC,7,ECT413,Optical Fibre Communication,PEC (Elective),3-0-0-0,3,0,3
+EC,EC,7,ECT423,Computer Networks,PEC (Elective),3-0-0-0,3,0,3
+EC,EC,7,CET445,Natural Disasters and Mitigation,CORE,3-0-0-0,3,0,3
+EC,EC,7,MCN401,Industrial Safety Engineering,CORE,3-0-0-0,3,0,3
+EC,EC,7,ECL411,Electromagnetics Lab,LAB,0-0-3-0,3,0,3
+EC,EC,7,ECQ413,Seminar,SEMINAR,0-0-3-0,3,0,3
+EC,EC,7,ECD415,Project Phase I,LAB,0-0-6-0,6,0,6
+EC,EC,7,ECT402,Wireless Communication,CORE,2-0-0-0,2,0,2
+EC,EC,8,ECT434,Secure Communication,ELECTIVE,5-0-0-0,5,0,5
+EC,EC,8,ECT426,Real Time Operating Systems,ELECTIVE,4-0-0-0,4,0,4
+EC,EC,8,ECT468,Renewable Energy Systems,ELECTIVE,5-0-0-0,5,0,5
+EC,EC,8,ECT404,Comprehensive Course Viva,CORE,4-0-0-0,4,0,4
+EC,EC,8,ECD416,Project Phase II,LAB,0-0-11-0,11,0,11
+EEE,EEE,7,EET401,Advanced Control Systems,CORE,3-1-0-1,5,0,5
+EEE,EEE,7,EET463,Illumination Technology,ELECTIVE-III,3-1-0-1,5,0,5
+EEE,EEE,7,CET445,Natural Disasters and Mitigation,CORE,3-0-0-0,3,0,3
+EEE,EEE,7,MCN401,Industrial Safety Engineering,CORE,3-1-0-0,4,0,4
+EEE,EEE,7,EEL411,Control Systems Lab,LAB,0-0-3-0,3,0,3
+EEE,EEE,7,EEQ413,Seminar,SEMINAR,3-0-0-0,3,0,3
+EEE,EEE,7,EED415,Project Phase I,LAB,6-0-0-0,6,0,6
+EEE,EEE,8,EET402,Electrical System Design and Estimation,CORE,3-1-0-0,4,0,4
+EEE,EEE,8,EET434,Smart Grid Technologies,ELECTIVE-III,3-1-0-0,4,0,4
+EEE,EEE,8,EET426,Special Electrical Machines,ELECTIVE-IV,3-1-0-0,4,0,4
+EEE,EEE,8,EET468,Industrial Instrumentation and Automation,ELECTIVE-V,3-1-0-0,4,0,4
+EEE,EEE,8,EET404,Comprehensive Course Viva,CORE,2-0-0-0,2,0,2
+EEE,EEE,8,EED416,Project Phase II,LAB,11-0-0-0,11,0,11
+ME,ME,7,MET401,Design of Machine Elements,Core,6-0-0-0,6,0,6
+ME,ME,7,MET413,Advanced Methods in Non-Destructive Testing,elective,5-0-0-0,5,0,5
+ME,ME,7,CET445,Natural Disasters and Mitigation,core,5-0-0-0,5,0,5
+ME,ME,7,MCN401,Industrial Safety Engineering,Core,4-0-0-0,4,0,4
+ME,ME,7,MEL411,Mechanical Engineering Lab,Lab,0-0-3-0,3,0,3
+ME,ME,7,MEQ413,Seminar,Seminar,0-0-3-0,3,0,3
+ME,ME,7,MED415,Project Phase I,lab,0-0-3-0,3,0,3
+ME,ME,8,MET402,Mechatronics,Core,5-0-0-0,5,0,5
+ME,ME,8,MET464,Elective III Micro and Nano Manufacturing,PEC (Elective),3-1-0-0,4,0,4
+ME,ME,8,MET414,Elective III Quality Management,PEC (Elective),3-0-0-0,3,0,3
+ME,ME,8,MET466,Elective IV Technology Management,PEC (Elective),3-0-0-0,3,0,3
+ME,ME,8,MET458,Elective V Advanced Energy Engineering,PEC (Elective),3-0-0-0,3,0,3
+ME,ME,8,MED416,Project Phase II,lab,11-0-0-0,11,0,11

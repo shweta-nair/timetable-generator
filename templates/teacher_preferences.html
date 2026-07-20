@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Subject Preferences – Timetable System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .page-title { font-size: 20px; font-weight: 800; color: #1a2e35; margin-bottom: 20px; }
+
+        .info-card {
+            background: #ffffff;
+            border-radius: 0;
+            padding: 30px;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 2px 0 rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.10);
+            margin-bottom: 24px;
+        }
+
+        .info-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.10);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px 24px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .info-item .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .info-item .value {
+            font-size: 15px;
+            color: #0f172a;
+            font-weight: 500;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 0;
+            border: 1px solid rgba(0,0,0,0.12);
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.08);
+        }
+
+        .edit-btn-container {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .save-btn {
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: #0b5ed7;
+            color: white;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.25), inset -1px -1px 0 rgba(0,0,0,0.20), 0 2px 0 rgba(0,0,0,0.03);
+        }
+        
+        .save-btn:hover { background: #0a53be; }
+
+        .info-card form select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid rgba(0,0,0,0.16);
+            border-radius: 0;
+            font-size: 14px;
+            font-family: inherit;
+            color: #0f172a;
+            transition: border-color 0.2s;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.08);
+        }
+        
+        .info-card form select:focus {
+            outline: none;
+            border-color: #0b5ed7;
+            box-shadow: 0 0 0 3px rgba(150,189,198,0.20);
+        }
+
+        .alert-error-text {
+            color: #dc2626;
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .rule-note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-size: 14px;
+            color: #1e40af;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .locked-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+            color: #991b1b;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body class="topnav-layout">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            Teacher Portal
+        </div>
+        <div class="header-right" style="display:flex;align-items:center;gap:16px;">
+            <nav class="top-nav" aria-label="Teacher navigation">
+                <a href="/" class="{% if request.path == '/' %}active{% endif %}">My Profile</a>
+                <a href="/teacher/timetable" class="{% if request.path.startswith('/teacher/timetable') %}active{% endif %}">Timetable</a>
+                <a href="/teacher/preferences" class="{% if request.path.startswith('/teacher/preferences') %}active{% endif %}">Preference</a>
+                <a href="/notifications" class="{% if request.path.startswith('/notifications') %}active{% endif %}">Notifications</a>
+                <a href="/teacher/settings" class="{% if request.path.startswith('/teacher/settings') %}active{% endif %}">Settings</a>
+            </nav>
+            <div style="position:relative;">
+                <button id="adminBell" onclick="toggleAdminNotif()" style="background:rgba(233,242,255,0.70);border:1px solid rgba(150,189,198,0.35);color:#1a2e35;padding:6px 10px;border-radius:10px;cursor:pointer;font-size:16px;position:relative;">
+                    🔔 <span id="adminBellBadge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:none;align-items:center;justify-content:center;"></span>
+                </button>
+                <div id="adminNotifPanel" style="display:none;position:absolute;right:0;top:44px;width:360px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.16);z-index:9999;border:1px solid #e2e8f0;text-align:left;">
+                    <div style="background:#2563eb;color:#fff;padding:12px 16px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;">
+                        Notifications Centre
+                        <button onclick="toggleAdminNotif()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
+                    </div>
+                    <div id="adminNotifBody" style="max-height:360px;overflow-y:auto;text-align:left;color:#334155;"><div style="padding:20px;text-align:center;color:#94a3b8;">Loading…</div></div>
+                    <div style="padding:10px 16px;border-top:1px solid #f1f5f9;text-align:center;">
+                        <form method="POST" action="/notifications/clear" style="margin:0;">
+                            <button type="submit" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Clear seen notifications</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <a href="/" class="nav-btn">My Profile</a>
+                <a href="/teacher/timetable" class="nav-btn">Timetable</a>
+                <a href="/teacher/preferences" class="nav-btn active">Preference</a>
+                <a href="/notifications" class="nav-btn">Notifications</a>
+                <a href="/teacher/settings" class="nav-btn">Settings</a>
+            </div>
+
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+            <div class="page-title">Subject Preferences</div>
+
+            <div class="status-badge">
+                {{ sem_type|capitalize }} Semesters Active ({{ valid_sems|join(', ') }})
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+            <div style="padding:12px 16px; border-radius:8px; margin-bottom:24px; font-size:14px; font-weight:500; 
+                 background:{% if cat=='error' %}#fef2f2{% else %}#f0fdf4{% endif %};
+                 color:{% if cat=='error' %}#b91c1c{% else %}#166534{% endif %};
+                 border:1px solid {% if cat=='error' %}#fecaca{% else %}#bbf7d0{% endif %};">
+                {{ msg }}
+            </div>
+            {% endfor %}
+            {% endwith %}
+
+            {% if not pref_open %}
+            <div class="locked-banner">
+                The Department Head has not opened the preference submission window yet. Please check back later.
+            </div>
+            {% else %}
+
+            <div class="rule-note">
+                <strong>Selection Rules:</strong> Select exactly 3 subject preferences. Each preference must be from a <strong>different semester</strong> (e.g., if Pref 1 is from Sem {{ valid_sems[0] }}, Pref 2 and 3 must be from different semesters).
+            </div>
+
+            {% if existing_prefs %}
+            <div class="info-card">
+                <h3>Your Current Preferences</h3>
+                <div class="info-grid" style="grid-template-columns: 1fr;">
+                    {% for p in existing_prefs %}
+                    <div class="info-item">
+                        <div class="label">Preference {{ loop.index }}</div>
+                        <div class="value">{{ p.course_code }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="info-card">
+                <h3>Update Preferences</h3>
+                <form method="POST" action="{{ url_for('teacher_preferences') }}" onsubmit="return validatePrefs()">
+                    <div class="info-grid">
+                        {% for rank in [1, 2, 3] %}
+                        <div class="info-item">
+                            <label class="label" for="pref_{{ rank }}">Preference {{ rank }}</label>
+                            <select name="pref_{{ rank }}" id="pref_{{ rank }}" required onchange="checkDuplicateSem()">
+                                <option value="">— Select Subject —</option>
+                                {% for sem, courses in courses_by_sem.items()|sort %}
+                                <optgroup label="Semester {{ sem }}" style="font-weight: 600; color: #64748b;">
+                                    {% for c in courses %}
+                                    <option value="{{ c.code }}" data-sem="{{ sem }}"
+                                        {% if existing_prefs|length >= rank and existing_prefs[rank-1].course_code == c.code %}selected{% endif %}>
+                                        {{ c.name }} ({{ c.code }})
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endfor %}
+                            </select>
+                            <div id="err_{{ rank }}" class="alert-error-text">Must be from a different semester.</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="edit-btn-container">
+                        <button type="submit" class="save-btn">Save Preferences</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <script>
+        function getSem(selectEl) {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            return opt ? opt.getAttribute('data-sem') : null;
+        }
+
+        function checkDuplicateSem() {
+            const s1 = getSem(document.getElementById('pref_1'));
+            const s2 = getSem(document.getElementById('pref_2'));
+            const s3 = getSem(document.getElementById('pref_3'));
+            
+            const err2 = document.getElementById('err_2');
+            const err3 = document.getElementById('err_3');
+            const sel2 = document.getElementById('pref_2');
+            const sel3 = document.getElementById('pref_3');
+
+            err2.style.display = 'none';
+            sel2.style.borderColor = '#cbd5e1';
+            err3.style.display = 'none';
+            sel3.style.borderColor = '#cbd5e1';
+
+            if (s1 && s2 && s1 === s2) {
+                err2.style.display = 'block';
+                sel2.style.borderColor = '#ef4444';
+            }
+            if ((s1 && s3 && s1 === s3) || (s2 && s3 && s2 === s3)) {
+                err3.style.display = 'block';
+                sel3.style.borderColor = '#ef4444';
+            }
+        }
+
+        function validatePrefs() {
+            const s1 = getSem(document.getElementById('pref_1'));
+            const s2 = getSem(document.getElementById('pref_2'));
+            const s3 = getSem(document.getElementById('pref_3'));
+            
+            if (!s1 || !s2 || !s3) { 
+                alert('Please select all 3 preferences.'); 
+                return false; 
+            }
+            
+            const sems = new Set([s1, s2, s3]);
+            if (sems.size < 3) { 
+                alert('All 3 preferences must be from 3 different semesters. Please correct the highlighted errors.'); 
+                return false; 
+            }
+            return true;
+        }
+        
+        document.addEventListener('DOMContentLoaded', checkDuplicateSem);
+    </script>
+</body>
+</html>

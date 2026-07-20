@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin - Teachers</title>
+    <script>
+        // Shared fetch wrapper (was called across this page's JS but never defined
+        // anywhere in the codebase — every call threw "authFetch is not defined").
+        function authFetch(url, options) {
+            options = options || {};
+            if (!('credentials' in options)) options.credentials = 'same-origin';
+            return fetch(url, options);
+        }
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .filter-bar input,
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 0;
+            font-size: 14px;
+        }
+
+        .filter-bar button {
+            padding: 8px 16px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 0;
+            padding: 30px;
+            width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.22);
+            border: 1px solid rgba(0,0,0,0.12);
+        }
+
+        .modal-box h3 {
+            margin-top: 0;
+            color: #0b5ed7;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-box input,
+        .modal-box select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid rgba(0,0,0,0.16);
+            border-radius: 0;
+            font-size: 14px;
+            box-sizing: border-box;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.9), inset -1px -1px 0 rgba(0,0,0,0.06);
+        }
+
+        .modal-box label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .field-group {
+            margin-bottom: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+
+        .flash-msg {
+            padding: 10px 16px;
+            border-radius: 0;
+            margin-bottom: 14px;
+            font-size: 14px;
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.92), inset -1px -1px 0 rgba(0,0,0,0.10);
+        }
+
+        .flash-msg.error {
+            background: #fde8e8;
+            color: #b00020;
+            border: 1px solid #f5c6c6;
+        }
+
+        .flash-msg.success {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #c8e6c9;
+        }
+
+        .dept-tag {
+            font-size: 11px;
+            background: #eef4ff;
+            color: #0b5ed7;
+            padding: 2px 8px;
+            border-radius: 0;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,0.6), inset -1px -1px 0 rgba(0,0,0,0.10);
+        }
+    </style>
+</head>
+
+<body class="topnav-layout">
+
+    <div class="header">
+        <div class="header-left">
+            Admin Panel
+            <nav class="top-nav" aria-label="Admin navigation">
+                <a href="/admin" class="{% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+                <a href="/admin/departments" class="{% if request.path.startswith('/admin/departments') %}active{% endif %}">Departments</a>
+                <a href="/admin/teachers" class="{% if request.path.startswith('/admin/teachers') %}active{% endif %}">Teachers</a>
+                <a href="/admin/subjects" class="{% if request.path.startswith('/admin/subjects') %}active{% endif %}">Subjects</a>
+                <a href="/admin/timetable/view" class="{% if request.path.startswith('/admin/timetable') %}active{% endif %}">View Timetable</a>
+                <a href="/admin/notifications/page" class="{% if request.path.startswith('/admin/notifications/page') %}active{% endif %}">Notifications</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <a href="/logout" class="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <a href="/admin" class="nav-btn">Dashboard</a>
+                <a href="/admin/departments" class="nav-btn">Departments</a>
+                <a href="/admin/teachers" class="nav-btn active">Teachers</a>
+                <a href="/admin/subjects" class="nav-btn">Subjects</a>
+                <a href="/admin/timetable/view" class="nav-btn">View Timetable</a>
+                <a href="/admin/notifications/page" class="nav-btn">Notifications</a>
+            </div>
+            <div class="sidebar-bottom">
+                <a href="/logout" class="nav-btn logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="page-title">Teachers</div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="flash-msg {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endwith %}
+
+            <div class="info-card">
+                <!-- FILTER BAR -->
+                <form method="GET" action="/admin/teachers" class="filter-bar">
+                    <input type="text" name="search" placeholder="Search by name..." value="{{ search }}">
+                    <select name="dept">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if dept.id==dept_filter %}selected{% endif %}>{{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select name="designation">
+                        <option value="">All Designations</option>
+                        {% for d in designations %}
+                        <option {% if d==desig_filter %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="save-btn">Filter</button>
+                    <a href="/admin/teachers" class="cancel-btn"
+                        style="padding:8px 16px; border-radius:4px; text-decoration:none; display:inline-block; color:white;">Clear</a>
+                    <button type="button" class="save-btn" onclick="openAddModal()" style="margin-left:auto;">+ Add
+                        Teacher</button>
+                </form>
+
+                <table class="dept-table">
+                    <tr>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Department</th>
+                        <th>Designation</th>
+                        <th>Actions</th>
+                    </tr>
+                    {% for t in teachers %}
+                    <tr>
+                        <td>{{ t.name }}</td>
+                        <td>{{ t.code or '—' }}</td>
+                        <td><span class="dept-tag">{{ t.dept_id or '—' }}</span></td>
+                        <td>{{ t.designation or '—' }}</td>
+                        <td>
+                            <button class="edit-btn" onclick="openEditModal('{{ t.id|e }}')">Edit</button>
+                            <form method="POST" action="/admin/teacher/delete/{{ t.id }}" style="display:inline"
+                                onsubmit="return confirm('Delete teacher {{ t.name|e }}?')">
+                                <button type="submit" class="cancel-btn">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">No teachers found.</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD MODAL -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-box">
+            <h3>Add Teacher</h3>
+            <form method="POST" action="/admin/teacher/add">
+                <div class="modal-grid">
+                    <div class="field-group">
+                        <label>Full Name *</label>
+                        <input type="text" name="name" placeholder="e.g. Dr. Sindya K Nambiar" required>
+                    </div>
+                    <div class="field-group">
+                        <label>Short Code</label>
+                        <input type="text" name="code" placeholder="e.g. SKN">
+                    </div>
+                    <div class="field-group">
+                        <label>Department</label>
+                        <select name="dept_id">
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Designation</label>
+                        <select name="designation">
+                            <option value="">Select</option>
+                            {% for d in designations %}
+                            <option>{{ d }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Gender</label>
+                        <select name="gender">
+                            <option value="">Select</option>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Experience (years)</label>
+                        <input type="text" name="experience" placeholder="e.g. 5">
+                    </div>
+                    <div class="field-group">
+                        <label>Date of Joining</label>
+                        <input type="date" name="date_of_joining">
+                    </div>
+                    <div class="field-group">
+                        <label>Seniority Level</label>
+                        <input type="text" name="seniority_level" placeholder="e.g. 3">
+                    </div>
+                    <div class="field-group" style="grid-column:1/-1">
+                        <label>Area of Specialization</label>
+                        <input type="text" name="area_of_specialization" placeholder="e.g. Machine Learning">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal('addModal')">Cancel</button>
+                    <button type="submit" class="save-btn">Add Teacher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box">
+            <h3>Edit Teacher</h3>
+            <form method="POST" id="editForm" action="">
+                <div class="modal-grid">
+                    <div class="field-group">
+                        <label>Full Name *</label>
+                        <input type="text" name="name" id="eName" required>
+                    </div>
+                    <div class="field-group">
+                        <label>Short Code</label>
+                        <input type="text" name="code" id="eCode">
+                    </div>
+                    <div class="field-group">
+                        <label>Department</label>
+                        <select name="dept_id" id="eDept">
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Designation</label>
+                        <select name="designation" id="eDesig">
+                            <option value="">Select</option>
+                            {% for d in designations %}
+                            <option>{{ d }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Gender</label>
+                        <select name="gender" id="eGender">
+                            <option value="">Select</option>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Experience (years)</label>
+                        <input type="text" name="experience" id="eExp">
+                    </div>
+                    <div class="field-group">
+                        <label>Date of Joining</label>
+                        <input type="date" name="date_of_joining" id="eDoj">
+                    </div>
+                    <div class="field-group">
+                        <label>Seniority Level</label>
+                        <input type="text" name="seniority_level" id="eSen">
+                    </div>
+                    <div class="field-group" style="grid-column:1/-1">
+                        <label>Area of Specialization</label>
+                        <input type="text" name="area_of_specialization" id="eArea">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal('editModal')">Cancel</button>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        function openEditModal(teacherId) {
+            authFetch('/admin/teacher/get/' + encodeURIComponent(teacherId))
+                .then(r => r.json())
+                .then(t => {
+                    document.getElementById('eName').value = t.name;
+                    document.getElementById('eCode').value = t.code;
+                    document.getElementById('eExp').value = t.experience;
+                    document.getElementById('eDoj').value = t.date_of_joining;
+                    document.getElementById('eSen').value = t.seniority_level;
+                    document.getElementById('eArea').value = t.area_of_specialization;
+                    // Set dropdowns
+                    setSelectValue('eDept', t.dept_id);
+                    setSelectValue('eDesig', t.designation);
+                    setSelectValue('eGender', t.gender);
+                    document.getElementById('editForm').action = '/admin/teacher/edit/' + encodeURIComponent(teacherId);
+                    document.getElementById('editModal').classList.add('open');
+                });
+        }
+
+        function setSelectValue(selectId, value) {
+            const sel = document.getElementById(selectId);
+            for (let opt of sel.options) {
+                if (opt.value === value || opt.text === value) { opt.selected = true; break; }
+            }
+        }
+
+        // Close on overlay click
+        ['addModal', 'editModal'].forEach(id => {
+            document.getElementById(id).addEventListener('click', function (e) {
+                if (e.target === this) closeModal(id);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

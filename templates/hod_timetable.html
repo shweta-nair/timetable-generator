@@ -1,0 +1,897 @@
+{% extends "hod_base.html" %}
+{% block title %}View Timetables{% endblock %}
+
+{% block extra_head %}
+<style>
+  .tabs { display:flex; gap:10px; border-bottom:2px solid #e2e8f0; margin-bottom:24px; }
+  .tab-btn { padding:10px 22px; font-weight:600; color:#475569; background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; font-size:14px; margin-bottom:-2px; transition:all .15s; }
+  .tab-btn:hover { color:#0b5ed7; }
+  .tab-btn.active { color:#0b5ed7; border-bottom-color:#0b5ed7; }
+  .filter-bar { display:flex; gap:14px; align-items:flex-end; margin-bottom:20px; background:#f9fafb; padding:16px; border-radius:10px; border:1px solid #e5e7eb; flex-wrap:wrap; }
+  .form-group { display:flex; flex-direction:column; gap:6px; min-width:160px; }
+  .form-group label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.06em; }
+  .form-group select { padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-family:inherit; font-size:13px; background:#fff; }
+  .tt-table-wrap { overflow-x:auto; margin-top:12px; }
+  .tt-table { width:100%; border-collapse:collapse; min-width:680px; }
+  .tt-table th { background:#eef4ff; color:#0b5ed7; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:10px 8px; border:1px solid #e2e8f0; text-align:center; }
+  .tt-table th.day-hdr { background:#f8fafc; color:#475569; text-align:left; padding-left:12px; }
+  .tt-table td { border:1px solid #e5e7eb; padding:10px 8px; text-align:center; vertical-align:top; font-size:12.5px; }
+  .cell-subject { font-weight:700; color:#1e293b; font-size:13px; margin-bottom:2px; }
+  .cell-teacher { font-size:11px; color:#64748b; }
+  .cell-div { font-size:11px; color:#6366f1; }
+  .cell-empty { color:#d1d5db; }
+  .placeholder { text-align:center; padding:48px; color:#94a3b8; }
+  .mode-badge { display:inline-block; background:#dbeafe; color:#1e40af; padding:4px 12px; border-radius:6px; font-size:12px; font-weight:700; }
+
+  /* Grid specific styles */
+  .tt-table-wrap { overflow-x: auto; font-family: 'Segoe UI', system-ui, sans-serif; }
+  .tt-table { width: 100%; border-collapse: collapse; min-width: 800px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .tt-table th { background: #1e3a5f; color: white; padding: 12px 10px; font-size: 11.5px; text-transform: uppercase; font-weight: 700; border: 1px solid #0f172a; text-align: center; }
+  .tt-table th.day-hdr { width: 9%; }
+  .tt-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: center; font-size: 12px; vertical-align: middle; min-width: 110px; }
+  .tt-table tr:nth-child(even) td { background: #fafafa; }
+  .tt-table tr:hover td { background: #f1f5f9; }
+  .cell-subject { font-weight: 600; color: #0f172a; font-size: 12px; line-height: 1.3; }
+  .cell-teacher { color: #475569; font-size: 11px; margin-top: 3px; }
+  .cell-div     { color: #4338ca; font-size: 10px; margin-top: 2px; font-weight: 600; }
+  .cell-empty   { color: #cbd5e1; font-size: 20px; }
+  .cell-remedial{ background: #fef08a !important; color: #a16207; font-size: 11px; font-weight: 600; }
+  .cell-lab { background: #f3e8ff !important; }
+  .cell-lab .cell-subject { color: #6b21a8; }
+  .friday-row td { background: #dcfce7 !important; }
+  .friday-row td:first-child { color: #15803d; }
+  .lunch-banner { background: #fef08a !important; color: #a16207; font-size: 11px; font-weight: 600; text-align: center; padding: 6px !important; border: 1px solid #fde047; letter-spacing: 0.08em; }
+
+  /* Action buttons */
+  .btn-group { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    padding: 8px 16px; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    transition: all .15s;
+  }
+  .btn-ghost { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+  .btn-ghost:hover { background: #f1f5f9; color: #0f172a; }
+  .btn-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .btn-success:hover { background: #bbf7d0; }
+
+  @media print {
+    .sidebar, .tabs, .filter-bar, .btn-group, .header { display: none !important; }
+    .content { padding: 0 !important; margin: 0 !important; }
+    .tt-table th { background: #1e3a5f !important; color: white !important; -webkit-print-color-adjust: exact; }
+  }
+  /* ── Timetable Grid (Professional Layout) ── */
+  .tt-card {
+    background: #ffffff;
+    border: 1px solid #dde3ec;
+    border-radius: 12px;
+    padding: 24px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .tt-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .tt-title { font-size: 15px; font-weight: 700; color: #1a202c; }
+  .tt-subtitle { font-size: 12px; color: #4a5568; margin-top: 2px; }
+
+  /* Grid wrapper */
+  .tt-grid-wrap {
+    overflow-x: auto;
+    border: 1.5px solid #b0bec5;
+    border-radius: 6px;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+  .tt-grid {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+    background: #fff;
+  }
+
+  /* Column headers */
+  .tt-hdr-day {
+    background: #e8edf5;
+    color: #1a202c;
+    font-weight: 700;
+    font-size: 11.5px;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid #b0bec5;
+    min-width: 68px;
+  }
+  .tt-hdr-period {
+    background: #e8edf5;
+    color: #1a202c;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid #b0bec5;
+    min-width: 100px;
+  }
+  .tt-hdr-lunch {
+    background: #fef6dc;
+    color: #7a5000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 6px 2px;
+    text-align: center;
+    border: 1px solid #d4a800;
+    width: 56px;
+    min-width: 56px;
+    /* rowspan=6 spans into tbody — keep consistent styling */
+    vertical-align: middle;
+  }
+  .period-num  { font-weight: 700; font-size: 12px; color: #1a202c; }
+  .period-time { font-size: 9px; font-weight: 400; color: #546e7a; margin-top: 2px; }
+
+  /* Row backgrounds */
+  .tt-row     td { background: #ffffff; }
+  .tt-row-alt td { background: #f7f9fc; }
+  .tt-row-fri td { background: #f3faf4; }
+
+  /* Day label cell */
+  .tt-day-cell {
+    font-weight: 700;
+    font-size: 12px;
+    color: #1a202c;
+    background: #f0f3f8 !important;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid #b0bec5;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .tt-row-fri .tt-day-cell {
+    background: #e2f4e8 !important;
+    color: #1b5e20;
+  }
+
+  /* Regular period cells */
+  .tt-cell {
+    border: 1px solid #cdd5df;
+    padding: 9px 7px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 12px;
+    transition: background .12s;
+  }
+  .tt-cell.tt-empty span { color: #c8cdd6; font-size: 18px; }
+  .tt-cell.tt-lab   { background: #f0ebff !important; }
+  .tt-cell.tt-remedial { background: #fef9c3 !important; }
+
+  /* Subject text inside cells */
+  .subj-code    { font-weight: 700; font-size: 13px; color: #1a202c; letter-spacing: .02em; }
+  .subj-teacher { font-size: 10px;  color: #546e7a; margin-top: 2px; }
+  .subj-div     { font-size: 10px;  color: #3730a3; font-weight: 600; margin-top: 2px; }
+  .tt-cell.tt-lab .subj-code { color: #4c1d95; }
+  .tt-cell.tt-remedial .subj-code { color: #92400e; }
+
+  /* Lunch column */
+  .tt-lunch-cell {
+    background: #fffbeb !important;
+    border: 1px solid #d4a800;
+    text-align: center;
+    vertical-align: middle;
+    width: 56px;
+    min-width: 56px;
+    padding: 4px 2px;
+  }
+  /* Friday extended lunch cell (in the first post-lunch column of Friday row) */
+  .tt-fri-lunch {
+    background: #fffbeb !important;
+    border: 1px solid #d4a800;
+    text-align: center;
+    vertical-align: middle;
+    padding: 4px 2px;
+    min-width: 56px;
+  }
+  .lunch-vert {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: 700;
+    color: #7a5000;
+    letter-spacing: .09em;
+    white-space: nowrap;
+    display: inline-block;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .lunch-vert small {
+    display: block;
+    font-size: 8.5px;
+    font-weight: 400;
+    margin-top: 3px;
+    opacity: .8;
+    letter-spacing: .02em;
+  }
+
+
+  @media print {
+    .tt-hdr-day, .tt-hdr-period { background: #e8edf5 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .tt-lunch-cell, .tt-hdr-lunch { background: #fffbeb !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .tt-cell.tt-lab  { background: #f0ebff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+
+  /* ── Placeholder ── */
+  .tt-placeholder {
+    text-align: center; padding: 60px 20px;
+    color: #64748b;
+  }
+  .tt-placeholder .icon { width: 0; display: none; margin-bottom: 0; }
+  .tt-placeholder p { font-size: 14px; }
+  .tt-placeholder small { font-size: 12px; color: #94a3b8; display: block; margin-top: 6px; }
+
+  /* ── Action buttons ── */
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 18px; border: none; border-radius: 9px;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: all .15s;
+  }
+  .btn-primary { background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: white; }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .btn-success:hover { background: #bbf7d0; }
+  .btn-ghost { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+  .btn-ghost:hover { background: #f1f5f9; color: #0f172a; }
+
+
+  /* Action buttons */
+  .btn-group { display:flex; gap:8px; align-items:center; }
+  .btn { padding:8px 16px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:all .15s; }
+  .btn-ghost { background:#f8fafc; color:#475569; border:1px solid #e2e8f0; }
+  .btn-ghost:hover { background:#f1f5f9; color:#0f172a; }
+  .btn-success { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; }
+  .btn-success:hover { background:#bbf7d0; }
+
+
+  /* ── Timetable Grid (Professional Layout) ── */
+  .tt-card {
+    background: #ffffff;
+    border: 1px solid #dde3ec;
+    border-radius: 12px;
+    padding: 24px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .tt-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .tt-title { font-size: 15px; font-weight: 700; color: #1a202c; }
+  .tt-subtitle { font-size: 12px; color: #4a5568; margin-top: 2px; }
+
+  /* Grid wrapper */
+  .tt-grid-wrap {
+    overflow-x: auto;
+    border: 1.5px solid #b0bec5;
+    border-radius: 6px;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+  .tt-grid {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+    background: #fff;
+  }
+
+  /* Column headers */
+  .tt-hdr-day {
+    background: #e8edf5;
+    color: #1a202c;
+    font-weight: 700;
+    font-size: 11.5px;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid #b0bec5;
+    min-width: 68px;
+  }
+  .tt-hdr-period {
+    background: #e8edf5;
+    color: #1a202c;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid #b0bec5;
+    min-width: 100px;
+  }
+  .tt-hdr-lunch {
+    background: #fef6dc;
+    color: #7a5000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 6px 2px;
+    text-align: center;
+    border: 1px solid #d4a800;
+    width: 56px;
+    min-width: 56px;
+    /* rowspan=6 spans into tbody — keep consistent styling */
+    vertical-align: middle;
+  }
+  .period-num  { font-weight: 700; font-size: 12px; color: #1a202c; }
+  .period-time { font-size: 9px; font-weight: 400; color: #546e7a; margin-top: 2px; }
+
+  /* Row backgrounds */
+  .tt-row     td { background: #ffffff; }
+  .tt-row-alt td { background: #f7f9fc; }
+  .tt-row-fri td { background: #f3faf4; }
+
+  /* Day label cell */
+  .tt-day-cell {
+    font-weight: 700;
+    font-size: 12px;
+    color: #1a202c;
+    background: #f0f3f8 !important;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid #b0bec5;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .tt-row-fri .tt-day-cell {
+    background: #e2f4e8 !important;
+    color: #1b5e20;
+  }
+
+  /* Regular period cells */
+  .tt-cell {
+    border: 1px solid #cdd5df;
+    padding: 9px 7px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 12px;
+    transition: background .12s;
+  }
+  .tt-cell.tt-empty span { color: #c8cdd6; font-size: 18px; }
+  .tt-cell.tt-lab   { background: #f0ebff !important; }
+  .tt-cell.tt-remedial { background: #fef9c3 !important; }
+
+  /* Subject text inside cells */
+  .subj-code    { font-weight: 700; font-size: 13px; color: #1a202c; letter-spacing: .02em; }
+  .subj-teacher { font-size: 10px;  color: #546e7a; margin-top: 2px; }
+  .subj-div     { font-size: 10px;  color: #3730a3; font-weight: 600; margin-top: 2px; }
+  .tt-cell.tt-lab .subj-code { color: #4c1d95; }
+  .tt-cell.tt-remedial .subj-code { color: #92400e; }
+
+  /* Lunch column */
+  .tt-lunch-cell {
+    background: #fffbeb !important;
+    border: 1px solid #d4a800;
+    text-align: center;
+    vertical-align: middle;
+    width: 56px;
+    min-width: 56px;
+    padding: 4px 2px;
+  }
+  /* Friday extended lunch cell (in the first post-lunch column of Friday row) */
+  .tt-fri-lunch {
+    background: #fffbeb !important;
+    border: 1px solid #d4a800;
+    text-align: center;
+    vertical-align: middle;
+    padding: 4px 2px;
+    min-width: 56px;
+  }
+  .lunch-vert {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: 700;
+    color: #7a5000;
+    letter-spacing: .09em;
+    white-space: nowrap;
+    display: inline-block;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .lunch-vert small {
+    display: block;
+    font-size: 8.5px;
+    font-weight: 400;
+    margin-top: 3px;
+    opacity: .8;
+    letter-spacing: .02em;
+  }
+
+
+  @media print {
+    .tt-hdr-day, .tt-hdr-period { background: #e8edf5 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .tt-lunch-cell, .tt-hdr-lunch { background: #fffbeb !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .tt-cell.tt-lab  { background: #f0ebff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+
+  /* ── Placeholder ── */
+  .tt-placeholder {
+    text-align: center; padding: 60px 20px;
+    color: #64748b;
+  }
+  .tt-placeholder .icon { width: 0; display: none; margin-bottom: 0; }
+  .tt-placeholder p { font-size: 14px; }
+  .tt-placeholder small { font-size: 12px; color: #94a3b8; display: block; margin-top: 6px; }
+
+  /* ── Action buttons ── */
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 18px; border: none; border-radius: 9px;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: all .15s;
+  }
+  .btn-primary { background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: white; }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .btn-success:hover { background: #bbf7d0; }
+  .btn-ghost { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+  .btn-ghost:hover { background: #f1f5f9; color: #0f172a; }
+
+
+  /* btn helpers for HOD */
+  .btn-group{display:flex;gap:8px;align-items:center;}
+  .btn{padding:8px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+  .btn-ghost{background:#f8fafc;color:#475569;border:1px solid #e2e8f0;}
+  .btn-ghost:hover{background:#f1f5f9;color:#0f172a;}
+  .btn-success{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;}
+  .btn-success:hover{background:#bbf7d0;}
+
+  /* ── Win95 / Placid theme (appearance only; no layout changes) ── */
+  :root { --w95-hilite: rgba(255,255,255,0.92); --w95-edge: rgba(0,0,0,0.10); --ink:#1a2e35; --panel:#e9f2ff; --accent:#0b5ed7; }
+  .tabs { border-bottom-color: var(--w95-edge); }
+  .tab-btn { font-weight: 700; color: rgba(26,46,53,0.70); }
+  .tab-btn:hover { color: var(--accent); }
+  .filter-bar { background: var(--panel) !important; border-radius: 0 !important; border-color: var(--w95-edge) !important;
+    box-shadow: inset 1px 1px 0 var(--w95-hilite), inset -1px -1px 0 rgba(0,0,0,0.10) !important; }
+  .form-group select { border-radius: 0 !important; border-color: rgba(0,0,0,0.16) !important;
+    box-shadow: inset 1px 1px 0 var(--w95-hilite), inset -1px -1px 0 rgba(0,0,0,0.08) !important; }
+  .mode-badge { border-radius: 0 !important; box-shadow: inset 1px 1px 0 rgba(255,255,255,0.45), inset -1px -1px 0 rgba(0,0,0,0.15); }
+  .tt-card { border-radius: 0 !important; border-color: var(--w95-edge) !important;
+    box-shadow: inset 1px 1px 0 var(--w95-hilite), inset -1px -1px 0 rgba(0,0,0,0.10), 0 2px 0 rgba(0,0,0,0.03) !important; }
+  .tt-grid-wrap { border-radius: 0 !important; font-family: 'Outfit','Segoe UI',system-ui,sans-serif !important;
+    box-shadow: inset 1px 1px 0 var(--w95-hilite), inset -1px -1px 0 rgba(0,0,0,0.10) !important; }
+  .tt-hdr-day, .tt-hdr-period { background: var(--panel) !important; color: var(--ink) !important; font-weight: 800 !important; }
+  .tt-row-alt td { background: #f5f9ff !important; }
+  .tt-day-cell { background: #eef4ff !important; color: var(--ink) !important; font-weight: 800 !important; }
+  .btn { border-radius: 0 !important; border: 1px solid rgba(0,0,0,0.16) !important; box-shadow: inset 1px 1px 0 var(--w95-hilite), inset -1px -1px 0 rgba(0,0,0,0.18); }
+</style>
+<script>
+window.__hodActiveMode  = "{{ 'teacher' if tab == 'teacher' else 'class' }}";
+window.__hodCells       = {{ timetable_cells | tojson }};
+window.__hodContainerId = "hod-tt-container-{{ tab }}";
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="page-title">Timetable Viewer</div>
+<p style="color:#64748b;font-size:13px;margin-top:-4px;margin-bottom:20px;">
+  Active Mode: <span class="mode-badge">{{ sem_type|title }} Semesters ({{ valid_sems|join(', ') }})</span>
+</p>
+
+<div class="tabs">
+  <button class="tab-btn {% if tab == 'own' %}active{% endif %}" onclick="location.href='?tab=own'">My Timetable</button>
+  <button class="tab-btn {% if tab == 'teacher' %}active{% endif %}" onclick="location.href='?tab=teacher'">Department Teachers</button>
+  <button class="tab-btn {% if tab == 'class' %}active{% endif %}" onclick="location.href='?tab=class'">Class-wise Timetables</button>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in messages %}
+<div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:14px;
+  {% if cat=='error' %}background:#fde8e8;color:#b00020;border:1px solid #f5c6c6;
+  {% else %}background:#e8f5e9;color:#065f46;border:1px solid #6ee7b7;{% endif %}">{{ msg }}</div>
+{% endfor %}
+{% endwith %}
+
+
+<!-- ── TAB: My Timetable ── -->
+{% if tab == 'own' %}
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h3 style="margin:0;font-size:16px;color:#0f172a;">My Timetable — {{ teacher.name if teacher else 'Unknown' }}</h3>
+    {% if timetable_cells %}
+    <div class="btn-group">
+      <button class="btn btn-ghost" onclick="window.print()">Print</button>
+      <a href="/timetable/pdf/teacher?key={{ teacher.id }}&sem_type={{ sem_type }}" class="btn btn-success" target="_blank">Download PDF</a>
+    </div>
+    {% endif %}
+  </div>
+  {% if timetable_cells %}
+    <div id="hod-tt-container-own"></div>
+  {% else %}
+    <div class="placeholder"><p>No timetable generated for you yet.</p><small>Wait for Admin to run Subject Assignment.</small></div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ── TAB: Department Teachers ── -->
+{% if tab == 'teacher' %}
+<div class="filter-bar">
+  <div class="form-group">
+    <label>Teacher</label>
+    <select onchange="location.href='?tab=teacher&key='+this.value">
+      <option value="">— Select Teacher —</option>
+      {% for t in teachers_in_dept %}
+      <option value="{{ t.id }}" {% if selected_key|string == t.id|string %}selected{% endif %}>{{ t.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
+  {% if selected_key %}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="margin:0;font-size:16px;color:#0f172a;">
+        Timetable — {{ teacher_map.get(selected_key, selected_key) }}
+      </h3>
+      {% if timetable_cells %}
+      <div class="btn-group">
+        <button class="btn btn-ghost" onclick="window.print()">Print</button>
+        <a href="/timetable/pdf/teacher?key={{ selected_key }}&sem_type={{ sem_type }}" class="btn btn-success" target="_blank">Download PDF</a>
+      </div>
+      {% endif %}
+    </div>
+    {% if timetable_cells %}
+      <div id="hod-tt-container-teacher-g"></div>
+      
+    {% else %}
+      <div class="placeholder"><p>No timetable found for this teacher.</p><small>Timetable generation may not have run yet.</small></div>
+    {% endif %}
+  {% else %}
+    <div class="placeholder"><p>Select a teacher above to view their timetable.</p></div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ── TAB: Class-wise ── -->
+{% if tab == 'class' %}
+<div class="filter-bar">
+  <div class="form-group">
+    <label>Class / Division</label>
+    <select onchange="
+      var parts = this.value.split('|');
+      location.href='?tab=class&key=' + encodeURIComponent(parts[0]) + '&sem=' + encodeURIComponent(parts[1] || '');
+    ">
+      <option value="">— Select Class —</option>
+      {% for m in all_keys_meta %}
+      <option value="{{ m.key }}|{{ m.semester }}"
+        {% if selected_key == m.key and selected_sem == m.semester %}selected{% endif %}>
+        {{ m.label }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+{% if not selected_key and all_keys_meta|length == 1 %}
+<script>
+  window.location.replace('?tab=class&key={{ all_keys_meta[0].key|urlencode }}&sem={{ all_keys_meta[0].semester|urlencode }}');
+</script>
+{% endif %}
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
+  {% if selected_key %}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="margin:0;font-size:16px;color:#0f172a;">
+        Class Timetable — {% if selected_sem %}S{{ selected_sem }} — {% endif %}{{ selected_key }}
+      </h3>
+      {% if timetable_cells %}
+      <div class="btn-group">
+        <button class="btn btn-ghost" onclick="window.print()">Print</button>
+        {# For class PDF we need semester. HOD view currently doesn't easily show semester for specific class but we can infer from sem_type #}
+        {# In hod_timetable route, timetable_cells are already filtered by sem_type. We might need to adjust route to pass semester back #}
+        <a href="/timetable/pdf/class?dept_id={{ dept.id }}&key={{ selected_key }}&sem_type={{ sem_type }}{% if selected_sem %}&semester={{ selected_sem }}{% endif %}" class="btn btn-success" target="_blank">Download PDF</a>
+      </div>
+      {% endif %}
+    </div>
+    {% if timetable_cells %}
+      <div id="hod-tt-container-class-g"></div>
+      
+    {% else %}
+      <div class="placeholder"><p>No timetable found for this class.</p><small>Timetable generation may not have run yet.</small></div>
+    {% endif %}
+  {% else %}
+    <div class="placeholder"><p>Select a division above to view the class timetable.</p></div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+
+function buildGrid(cells, mode) {
+  // ── Period metadata: weekday vs Friday ──────────────────────────────────
+  const metaWD = {}, metaFri = {};
+  cells.forEach(c => {
+    if (c.day !== 'Friday' && !metaWD[c.period_number])
+      metaWD[c.period_number] = { start: c.period_start||'', end: c.period_end||'' };
+    if (c.day === 'Friday' && !metaFri[c.period_number])
+      metaFri[c.period_number] = { start: c.period_start||'', end: c.period_end||'' };
+  });
+
+  // ── Build complete period list — always show all 7 periods for teacher mode ──
+  let pnums = [...new Set(cells.map(c => c.period_number))].sort((a,b)=>a-b);
+
+  if (mode === 'teacher' && pnums.length > 0) {
+    // Teacher timetable: always show periods 1–7 (or the max period found, whichever is larger)
+    // so that free periods appear as empty columns rather than being hidden.
+    const maxPn = Math.max(...pnums, 7);
+    const minPn = Math.min(...pnums, 1);
+    const fullSet = [];
+    for (let p = minPn; p <= maxPn; p++) fullSet.push(p);
+    pnums = fullSet;
+  }
+
+  const periodMeta = {};
+  pnums.forEach(pn => { periodMeta[pn] = metaWD[pn] || metaFri[pn] || {}; });
+
+  // For teacher mode: fill in missing period timings using standard schedule.
+  // Standard Y1-3 weekday: P1 08:45-09:35, P2 09:35-10:25, P3 10:35-11:30,
+  //   P4 12:15-13:05, P5 13:05-13:55, P6 14:05-14:55, P7 14:55-15:45.
+  // Standard Friday: P1-P3 same, P4 11:30-12:15, P5 14:15-14:55, P6 14:55-15:45.
+  const STD_WD_TIMES = {
+    1:{start:'08:45',end:'09:35'}, 2:{start:'09:35',end:'10:25'},
+    3:{start:'10:35',end:'11:30'}, 4:{start:'12:15',end:'13:05'},
+    5:{start:'13:05',end:'13:55'}, 6:{start:'14:05',end:'14:55'},
+    7:{start:'14:55',end:'15:45'}
+  };
+  const STD_FRI_TIMES = {
+    1:{start:'08:45',end:'09:35'}, 2:{start:'09:35',end:'10:25'},
+    3:{start:'10:35',end:'11:30'}, 4:{start:'11:30',end:'12:15'},
+    5:{start:'14:15',end:'14:55'}, 6:{start:'14:55',end:'15:45'}
+  };
+  if (mode === 'teacher') {
+    pnums.forEach(pn => {
+      if (!metaWD[pn] && STD_WD_TIMES[pn])  metaWD[pn]  = STD_WD_TIMES[pn];
+      if (!metaFri[pn] && STD_FRI_TIMES[pn]) metaFri[pn] = STD_FRI_TIMES[pn];
+      if (!periodMeta[pn]) periodMeta[pn] = metaWD[pn] || metaFri[pn] || {};
+    });
+  }
+
+  // ── Detect weekday lunch gap (largest gap across weekday periods) ────────
+  const wdPnums = pnums.filter(pn => metaWD[pn]);
+  const refPnums = wdPnums.length ? wdPnums : pnums;
+  let maxGap = 0, lunchAfterPnum = refPnums[Math.ceil(refPnums.length/2)-1] || pnums[0];
+  refPnums.forEach((pn, i) => {
+    if (i >= refPnums.length-1) return;
+    const m0 = metaWD[pn]||metaFri[pn]||{}, m1 = metaWD[refPnums[i+1]]||metaFri[refPnums[i+1]]||{};
+    if (!m0.end || !m1.start) return;
+    const [eh,em] = m0.end.split(':').map(Number), [sh,sm] = m1.start.split(':').map(Number);
+    const gap = (sh*60+sm)-(eh*60+em);
+    if (gap > maxGap) { maxGap = gap; lunchAfterPnum = pn; }
+  });
+  const lunchIdx = pnums.indexOf(lunchAfterPnum);
+  const pre  = pnums.slice(0, lunchIdx+1);
+  const post = pnums.slice(lunchIdx+1);
+
+  // Weekday lunch time label
+  const wdLS = (metaWD[pre[pre.length-1]]||metaFri[pre[pre.length-1]]||{}).end  || '';
+  const wdLE = (metaWD[post[0]]           ||metaFri[post[0]]           ||{}).start || '';
+  const wdLunchLabel = (wdLS&&wdLE) ? `${wdLS}–${wdLE}` : '12:00–12:45';
+
+  // ── Friday extended lunch label (biggest gap in Friday periods) ──────────
+  const friPnums = pnums.filter(pn => metaFri[pn]);
+  let friMaxGap = 0, friLunchAfterPnum = lunchAfterPnum;
+  friPnums.forEach((pn,i) => {
+    if (i >= friPnums.length-1) return;
+    const m0 = metaFri[pn]||{}, m1 = metaFri[friPnums[i+1]]||{};
+    if (!m0.end || !m1.start) return;
+    const [eh,em] = m0.end.split(':').map(Number), [sh,sm] = m1.start.split(':').map(Number);
+    const gap = (sh*60+sm)-(eh*60+em);
+    if (gap > friMaxGap) { friMaxGap = gap; friLunchAfterPnum = pn; }
+  });
+  const friLunchAfterIdx = friPnums.indexOf(friLunchAfterPnum);
+  const friNextPn = friPnums[friLunchAfterIdx+1];
+  const friLS = (metaFri[friLunchAfterPnum]||{}).end  || wdLS;
+  const friLE = friNextPn ? (metaFri[friNextPn]||{}).start||'' : '';
+  const friLunchLabel = (friLS&&friLE) ? `${friLS}–${friLE}` : '12:15–14:15';
+
+  // ── Group cells by day × period ──────────────────────────────────────────
+  const byDay = {};
+  DAYS.forEach(d => { byDay[d]={}; });
+  cells.forEach(c => {
+    if (!byDay[c.day]) byDay[c.day]={};
+    (byDay[c.day][c.period_number]=byDay[c.day][c.period_number]||[]).push(c);
+  });
+
+  // Merge consecutive same-subject cells → colspan groups
+  function makeGroups(day, pnumsArr) {
+    const res=[]; let i=0;
+    while (i < pnumsArr.length) {
+      const pn=pnumsArr[i], slot=(byDay[day]||{})[pn]||[];
+      const cell=slot.find(c=>c.subject_code||c.subject_name)||slot[0]||null;
+      if (!cell||(!cell.subject_code&&!cell.subject_name)) { res.push({pn,span:1,cell:null}); i++; continue; }
+      let span=1;
+      while (i+span < pnumsArr.length) {
+        const np=pnumsArr[i+span], ns=(byDay[day]||{})[np]||[];
+        const nc=ns.find(c=>c.subject_code||c.subject_name)||ns[0]||null;
+        if (nc&&nc.subject_code===cell.subject_code&&nc.teacher_id===cell.teacher_id) span++; else break;
+      }
+      res.push({pn,span,cell}); i+=span;
+    }
+    return res;
+  }
+
+  // Render a single period cell
+  function renderCell(span, cell, forceSpan) {
+    const cs = (forceSpan||span)>1 ? ` colspan="${forceSpan||span}"` : '';
+    if (!cell||(!cell.subject_name&&!cell.subject_code))
+      return `<td${cs} class="tt-cell tt-empty"><span>·</span></td>`;
+    if (cell.is_remedial)
+      return `<td${cs} class="tt-cell tt-remedial"><div class="subj-code">REMEDIAL</div></td>`;
+    const code  = esc(cell.short_code||cell.subject_code||cell.subject_name||'—');
+    const isLab = span>1||(cell.subject_type||'').toLowerCase().includes('lab');
+    const extCls= isLab?' tt-lab':'';
+    const tLine = mode!=='teacher'&&cell.teacher_name
+      ?`<div class="subj-teacher">${esc(shortName(cell.teacher_name))}</div>`:'';
+    const dLine = mode==='teacher'&&cell.division_id
+      ?`<div class="subj-div">${esc(cell.division_id)}</div>`:'';
+    return `<td${cs} class="tt-cell${extCls}"><div class="subj-code">${code}</div>${tLine}${dLine}</td>`;
+  }
+
+  // Total rows = 1 header + 5 data = 6 (for rowspan on LUNCH column)
+  const totalRows = 1 + DAYS.length; // 6
+
+  // ── Build HTML: FLAT table (no thead/tbody) so rowspan spans all rows ────
+  // Using a flat table ensures the <th rowspan="6"> truly merges into one
+  // visual box from the header all the way through Friday's row.
+  let html = '<div class="tt-grid-wrap"><table class="tt-grid">';
+
+  // ── Row 0: Header row ─────────────────────────────────────────────────────
+  html += '<tr>';
+  html += '<th class="tt-hdr-day">Day</th>';
+  pre.forEach(pn => {
+    const m = periodMeta[pn]||{};
+    html += `<th class="tt-hdr-period"><div class="period-num">P${pn}</div><div class="period-time">${m.start}–${m.end}</div></th>`;
+  });
+  // ONE LUNCH column header — rowspan covers ALL data rows (no separate body cells needed)
+  html += `<th class="tt-hdr-lunch" rowspan="${totalRows}">` +
+    `<div class="lunch-vert">LUNCH BREAK<small>${wdLunchLabel}</small></div></th>`;
+  post.forEach(pn => {
+    const m = periodMeta[pn]||{};
+    html += `<th class="tt-hdr-period"><div class="period-num">P${pn}</div><div class="period-time">${m.start}–${m.end}</div></th>`;
+  });
+  html += '</tr>';
+
+  // ── Rows 1-5: Data rows (Mon–Fri) ────────────────────────────────────────
+  // IMPORTANT: Do NOT emit any cell for the LUNCH column in these rows.
+  // The rowspan="6" header cell already covers all of them visually.
+
+  DAYS.forEach((day, di) => {
+    const fri = day==='Friday';
+    const rowCls = fri ? 'tt-row tt-row-fri' : (di%2===0 ? 'tt-row' : 'tt-row tt-row-alt');
+    html += `<tr class="${rowCls}">`;
+    html += `<td class="tt-day-cell">${day.slice(0,3)}.</td>`;
+
+    // Pre-lunch period cells (same for all days)
+    makeGroups(day, pre).forEach(({span,cell}) => { html += renderCell(span, cell); });
+
+    // ── NO cell emitted for LUNCH column — covered by header rowspan ─────────
+
+    // Post-lunch period cells
+    if (fri && mode !== 'teacher') {
+      // ── Friday special: first POST column = extended LUNCH BREAK ─────────
+      // For CLASS timetables only — NOT for teacher timetables.
+      post.forEach((pn, colIdx) => {
+        if (colIdx === 0) {
+          html += `<td class="tt-fri-lunch"><div class="lunch-vert">` +
+            `Lunch<small>${friLunchLabel}</small></div></td>`;
+        } else {
+          const dataPn = post[colIdx - 1];
+          const slot = (byDay['Friday']||{})[dataPn]||[];
+          const cell = slot.find(c=>c.subject_code||c.subject_name)||slot[0]||null;
+          html += renderCell(1, cell);
+        }
+      });
+    } else {
+      // Weekday, or Friday in teacher mode: normal post-lunch rendering
+      makeGroups(day, post).forEach(({span,cell}) => { html += renderCell(span, cell); });
+    }
+
+    html += '</tr>';
+  });
+
+  html += '</table></div>';
+  return html;
+}
+
+function shortName(name) {
+  if (!name) return '';
+  const parts = name.split(' ');
+  const titles = ['Dr.','Mr.','Ms.','Prof.','Dr','Mr','Ms','Prof'];
+  if (parts.length > 1 && titles.includes(parts[0])) return parts[0] + ' ' + (parts[1] || '');
+  return parts[0];
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildLegend(cells, mode) {
+  const isTeacher = (mode === 'teacher');
+  const map = new Map();
+  cells.forEach(c => {
+    if (!c.subject_name && !c.subject_code && !c.short_code) return;
+    const baseKey   = c.short_code || c.subject_code || c.subject_name || '';
+    const legendKey = isTeacher ? (baseKey + '|' + (c.division_id || '')) : baseKey;
+    if (!map.has(legendKey)) {
+      const semNum = c.semester_num || '', studDept = c.student_dept || '', divId = c.division_id || '';
+      let classLabel = semNum ? (`S${semNum}` + (studDept ? ` ${studDept}` : '') + (divId && divId !== studDept ? ` – ${divId}` : '')) : divId;
+      map.set(legendKey, { shortCode: c.short_code || c.subject_code || '', subjectCode: c.subject_code || '',
+        subjectName: c.subject_name || '', teacher: c.teacher_name || '', classLabel, teacherDept: c.teacher_dept || '' });
+    }
+  });
+  if (!map.size) return '';
+
+  const thSty = 'padding:10px 14px;border-bottom:2px solid #e2e8f0;color:#475569;font-weight:600;background:#f8fafc;';
+  let html = '<div style="margin-top:24px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);">';
+  html += '<h4 style="font-size:14px;font-weight:700;color:#0f172a;margin:0;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Subject Code Mapping</h4>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">';
+
+  // Use a simple neutral dot (no per-subject color mapping)
+  const dot = () => `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#718096;margin-right:6px;vertical-align:middle;opacity:.6;"></span>`;
+
+  if (isTeacher) {
+    html += `<thead><tr><th style="${thSty}">Code</th><th style="${thSty}">Course Code</th><th style="${thSty}">Course Name</th><th style="${thSty}">Class</th></tr></thead><tbody>`;
+    map.forEach((row) => {
+      html += `<tr><td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;">${dot()}<b style="color:#1a202c;">${esc(row.shortCode)}</b></td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;">${esc(row.subjectCode)}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;font-weight:500;color:#1a202c;">${esc(row.subjectName)}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#3730a3;">${esc(row.classLabel)}</td></tr>`;
+    });
+  } else {
+    html += `<thead><tr><th style="${thSty}">Code</th><th style="${thSty}">Course Code</th><th style="${thSty}">Course Name</th><th style="${thSty}">Faculty</th><th style="${thSty}">Department</th></tr></thead><tbody>`;
+    map.forEach((row) => {
+      html += `<tr><td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;">${dot()}<b style="color:#1a202c;">${esc(row.shortCode)}</b></td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;">${esc(row.subjectCode)}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;font-weight:500;color:#1a202c;">${esc(row.subjectName)}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;">${esc(row.teacher)}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#065f46;">${esc(row.teacherDept)}</td></tr>`;
+    });
+  }
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function statsBar(cells, mode) {
+  // For teacher mode, deduplicate subjects by subject_code so that parallel
+  // sections (e.g. DSA(CS1) + DSA(CS2)) count as ONE subject, not two.
+  const subjectKey = (c) => (mode === 'teacher')
+    ? (c.subject_code || c.subject_name || '')
+    : (c.subject_id || c.subject_code || c.subject_name || '');
+  const subs = new Set(cells.filter(c=>c.subject_name).map(subjectKey));
+  const teachers = new Set(cells.filter(c=>c.teacher_name).map(c=>c.teacher_name));
+  const filled = cells.filter(c=>!c.is_free && !c.is_remedial && c.subject_name).length;
+  return `<div class="stats-bar">
+    <div class="stat-chip"><strong>${filled}</strong>Slots filled</div>
+    <div class="stat-chip"><strong>${subs.size}</strong>Subject${subs.size!==1?'s':''}</div>
+    <div class="stat-chip"><strong>${teachers.size}</strong>Teacher${teachers.size!==1?'s':''}</div>
+  </div>`;
+}
+
+
+function renderHodTT(cells, mode, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!cells || !cells.length) {
+    el.innerHTML = '<div style="padding:32px;text-align:center;color:#94a3b8;">No timetable data found.</div>';
+    return;
+  }
+  el.innerHTML = buildGrid(cells, mode) + buildLegend(cells, mode);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cells = window.__hodCells || [];
+  const mode  = window.__hodActiveMode || 'class';
+  const cid   = window.__hodContainerId;
+  if (cells.length && cid) {
+    renderHodTT(cells, mode, cid);
+    renderHodTT(cells, mode, cid + '-g');
+  }
+});
+</script>
+{% endblock %}

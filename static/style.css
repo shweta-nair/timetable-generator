@@ -1,0 +1,558 @@
+/* ===================== BASE ===================== */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap");
+
+body {
+    margin: 0;
+    font-family: "Outfit", "Segoe UI", Arial, sans-serif !important;
+    background-color: #f4f6f9;
+}
+
+/* ===================== WIN95 SKIN (SUBTLE) ===================== */
+:root{
+  --w95-face: #e9f2ff;
+  --w95-face-2: #f5f9ff;
+  --w95-hilite: rgba(255,255,255,0.92);
+  --w95-shadow: rgba(9, 28, 49, 0.28);
+  --w95-shadow-2: rgba(9, 28, 49, 0.42);
+  --w95-text: #1a2e35;
+  --w95-accent: #0b5ed7; /* keep existing theme */
+}
+
+body{
+  background:
+    linear-gradient(180deg, rgba(233,242,255,0.65), rgba(244,246,249,1) 320px) !important;
+  color: var(--w95-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ===================== TOP NAV LAYOUT (AFTER LOGIN) ===================== */
+body.topnav-layout{
+  position: relative;
+  min-height: 100vh;
+  background: #F2F8FA !important;
+  overflow-x: hidden;
+}
+
+body.topnav-layout::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  background: url("/static/app_bg_landscape.png");
+  background-size: cover;
+  background-position: center center;
+  transform: none;
+  /* keep image tasteful and professional */
+  filter: saturate(1.02) contrast(1.04) brightness(0.98);
+  z-index: -2;
+}
+
+body.topnav-layout::after{
+  content:"";
+  position: fixed;
+  inset: 0;
+  background:
+    /* landing-like tint + Gmail-ish soft glow */
+    linear-gradient(180deg,
+      rgba(8, 20, 34, 0.30) 0%,
+      rgba(242, 248, 250, 0.34) 22%,
+      rgba(242, 248, 250, 0.42) 62%,
+      rgba(242, 248, 250, 0.48) 100%),
+    radial-gradient(circle at 16% 10%, rgba(150,189,198,0.20) 0%, transparent 56%),
+    radial-gradient(circle at 86% 22%, rgba(240,223,138,0.14) 0%, transparent 54%),
+    radial-gradient(circle at 50% 92%, rgba(94,142,154,0.12) 0%, transparent 62%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+body.topnav-layout .sidebar{ display:none !important; }
+
+body.topnav-layout .layout{
+  display:block;
+}
+
+body.topnav-layout .content{
+  padding: 28px 28px 34px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Glass header: landing-page vibe but light */
+body.topnav-layout .header{
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  background: rgba(255,255,255,0.54);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border-bottom: 1px solid rgba(150,189,198,0.35);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+}
+
+body.topnav-layout .header-left{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: "Playfair Display","Outfit","Segoe UI",Arial,sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+body.topnav-layout .logout{
+  color: rgba(26,46,53,0.82) !important;
+}
+
+body.topnav-layout .logout:hover{
+  color: rgba(26,46,53,0.95) !important;
+  text-decoration: underline;
+}
+
+/* Top nav links inside header */
+.top-nav{
+  display:flex;
+  gap: 8px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+
+.top-nav a{
+  text-decoration:none;
+  color: rgba(26,46,53,0.82);
+  font-size: 12.75px;
+  font-weight: 700;
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid rgba(150,189,198,0.18);
+  background: rgba(255,255,255,0.22);
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.top-nav a:hover{
+  background: rgba(233,242,255,0.62);
+  border-color: rgba(150,189,198,0.32);
+}
+
+.top-nav a.active{
+  background: rgba(150,189,198,0.18);
+  border-color: rgba(94,142,154,0.32);
+  color: #1a2e35;
+}
+
+/* Glass panels for main cards */
+body.topnav-layout .info-card,
+body.topnav-layout .profile-card,
+body.topnav-layout .stat-card,
+body.topnav-layout .action-card,
+body.topnav-layout .card{
+  background: rgba(255,255,255,0.68) !important;
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  border-color: rgba(150,189,198,0.30) !important;
+  box-shadow:
+    0 14px 40px rgba(0,0,0,0.10),
+    inset 1px 1px 0 rgba(255,255,255,0.75) !important;
+}
+
+@media (max-width: 720px){
+  body.topnav-layout .content{ padding: 20px; }
+  .top-nav a{ padding: 7px 10px; }
+}
+
+/* Window-like containers (bevel) */
+.content, .info-card, .profile-card, .stat-card, .action-card{
+  border-radius: 0 !important;
+}
+
+.info-card,
+.profile-card{
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow:
+    inset 1px 1px 0 var(--w95-hilite),
+    inset -1px -1px 0 rgba(0,0,0,0.10),
+    0 2px 0 rgba(0,0,0,0.03);
+}
+
+/* Header becomes a classic title bar */
+.header{
+  background: linear-gradient(90deg, #0b5ed7, #5E8E9A);
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.25);
+}
+
+.header-left{
+  letter-spacing: 0.01em;
+}
+
+/* Sidebar as a left "panel" */
+.sidebar{
+  background:
+    linear-gradient(180deg, var(--w95-face), rgba(233,242,255,0.86));
+  border-right: 1px solid rgba(0,0,0,0.10);
+  box-shadow:
+    inset 1px 0 0 var(--w95-hilite);
+}
+
+.nav-btn{
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.nav-btn:hover{
+  transform: translateY(-1px);
+}
+
+/* Page title as a Win95 group label */
+.page-title{
+  background: var(--w95-face);
+  border-left: 6px solid var(--w95-accent);
+  box-shadow:
+    inset 1px 1px 0 var(--w95-hilite),
+    inset -1px -1px 0 rgba(0,0,0,0.12);
+  border-radius: 0;
+}
+
+/* Inputs / selects (bevel) */
+input, select, textarea{
+  border-radius: 0 !important;
+  border: 1px solid rgba(0,0,0,0.16);
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,0.9),
+    inset -1px -1px 0 rgba(0,0,0,0.06);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+input:focus, select:focus, textarea:focus{
+  outline: none;
+  border-color: rgba(11,94,215,0.55);
+  box-shadow:
+    0 0 0 3px rgba(94,142,154,0.20),
+    inset 1px 1px 0 rgba(255,255,255,0.9),
+    inset -1px -1px 0 rgba(0,0,0,0.06);
+}
+
+/* Buttons (raised + pressed states) */
+button,
+.edit-btn, .save-btn, .cancel-btn{
+  border-radius: 0 !important;
+  box-shadow:
+    inset 1px 1px 0 var(--w95-hilite),
+    inset -1px -1px 0 rgba(0,0,0,0.18);
+  transition: transform 0.12s ease, filter 0.16s ease;
+}
+
+button:hover,
+.edit-btn:hover, .save-btn:hover, .cancel-btn:hover{
+  filter: brightness(1.03);
+}
+
+button:active,
+.edit-btn:active, .save-btn:active, .cancel-btn:active{
+  transform: translateY(1px);
+  box-shadow:
+    inset -1px -1px 0 var(--w95-hilite),
+    inset 1px 1px 0 rgba(0,0,0,0.22);
+}
+
+/* Tables keep formatting; just a subtle chrome */
+.dept-table th,
+.timetable-table th{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+}
+
+/* Global smoothness (subtle) */
+*{
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ transition: none !important; animation: none !important; }
+}
+
+/* ===================== HEADER ===================== */
+.header {
+    background-color: #0b5ed7;
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menu-btn {
+    font-size: 22px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.logout {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+/* ===================== LAYOUT ===================== */
+.layout {
+    display: flex;
+}
+
+/* ===================== SIDEBAR ===================== */
+.sidebar {
+    width: 250px;
+    background-color: #e9f2ff;
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-top {
+    flex-grow: 1;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+}
+
+/* NAVIGATION LINKS */
+.nav-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 18px;
+    text-decoration: none;
+    text-align: left;
+    font-size: 15px;
+    color: #0b5ed7;
+    border-bottom: 1px solid #d6e6ff;
+    box-sizing: border-box;
+}
+
+.nav-btn:hover {
+    background-color: #dbe8ff;
+}
+
+.nav-btn.active {
+    background-color: #0b5ed7;
+    color: white;
+    font-weight: 600;
+}
+
+.logout-btn {
+    color: #b00020;
+}
+
+/* ===================== CONTENT ===================== */
+.content {
+    flex: 1;
+    padding: 25px;
+}
+
+/* ===================== PAGE TITLE ===================== */
+.page-title {
+    background-color: #e9f2ff;
+    padding: 12px 16px;
+    font-size: 18px;
+    font-weight: bold;
+    border-left: 6px solid #0b5ed7;
+    margin-bottom: 20px;
+}
+
+/* ===================== PROFILE SUMMARY ===================== */
+.profile-card {
+    background: white;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.profile-photo {
+    width: 90px;
+    height: 90px;
+    background-color: #d9d9d9;
+    border-radius: 50%;
+}
+
+.badge {
+    background-color: #0b5ed7;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+/* ===================== INFO CARDS ===================== */
+.info-card {
+    background: white;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.info-card h3 {
+    color: #0b5ed7;
+    border-bottom: 2px solid #e5e5e5;
+    padding-bottom: 6px;
+}
+
+/* ===================== GRID ===================== */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 30px;
+    margin-top: 15px;
+}
+
+.info-item {
+    display: flex;
+}
+
+.label {
+    width: 160px;
+    font-weight: 600;
+    color: #555;
+}
+
+.value {
+    color: #222;
+}
+
+/* ===================== FORMS ===================== */
+.info-card input,
+.info-card select {
+    padding: 8px;
+    width: 100%;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ===================== BUTTONS ===================== */
+.edit-btn {
+    background-color: #198754;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.save-btn {
+    background-color: #0b5ed7;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.edit-btn-container {
+    text-align: right;
+    margin-top: 20px;
+}
+
+/* ===================== DEPARTMENT TABLE ===================== */
+.dept-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.dept-table th,
+.dept-table td {
+    border: 1px solid #d1d5db;
+    padding: 10px;
+    text-align: left;
+}
+
+.dept-table th {
+    background-color: #eef4ff;
+    color: #0b5ed7;
+    font-weight: 600;
+}
+
+.dept-table td {
+    background-color: #ffffff;
+}
+
+.dept-table tbody tr:hover {
+    background-color: #f5f9ff;
+}
+
+/* ===================== EMPTY NOTE ===================== */
+.note {
+    margin-top: 16px;
+    font-size: 14px;
+    color: #6b7280;
+    font-style: italic;
+}
+/* ===================== DEPARTMENT DETAILS ===================== */
+
+.sub-title {
+    margin-top: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+.class-list {
+    margin-top: 6px;
+    padding-left: 18px;
+}
+
+.class-list li {
+    padding: 4px 0;
+    color: #444;
+}
+/* ===================== SUBJECT PAGE ===================== */
+
+.subject-list {
+    margin-top: 6px;
+    padding-left: 18px;
+}
+
+.subject-list li {
+    padding: 4px 0;
+    color: #444;
+}
+/* ===================== TIMETABLE PAGE ===================== */
+
+.timetable-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.timetable-table th,
+.timetable-table td {
+    border: 1px solid #d1d5db;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.timetable-table th {
+    background-color: #eef4ff;
+    color: #0b5ed7;
+    font-weight: 600;
+}
