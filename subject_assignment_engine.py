@@ -82,10 +82,21 @@ CONSTRAINT RULES ENFORCED
      - Lecturer > Assistant Prof > Associate Prof > Professor
 
 3. TEACHER SUBJECT LOAD
-   • Maximum 2 theory subjects per teacher per semester
-   • Maximum 1 lab per teacher per semester
-   • (PROJECT counts as theory; ELECTIVE counts as theory; LAB is separate)
+   • Maximum 2 CORE THEORY subjects per teacher per semester
+   • Maximum 1 lab OR 1 project OR 1 seminar per teacher (combined slot)
+     → A teacher may hold at most 3 subjects total:
+          2 Core Theory  +  1 (Lab OR Project OR Seminar)
+   • (ELECTIVE counts as theory; the combined Lab/Project/Seminar slot is
+     tracked by the lab_or_extra_assigned flag on Teacher)
    • Same subject taught across multiple divisions = ONE load unit (Rule 7/8)
+
+3b. MAXIMUM WEEKLY TEACHING LOAD
+   • HODs:                     max 16 periods/week
+   • Senior/Associate teachers: max 17 periods/week
+     (Principal, Deputy Dean, Associate Professor)
+   • Regular teachers:          max 19 periods/week
+     (Assistant Professor, Professor, Lecturer, and dummy teachers)
+   → Enforced via _max_periods_for_teacher() and Teacher.weekly_load_ok()
 
 4. THEORY-LAB PAIRING
    • If a subject has a companion lab, the same teacher is preferred for both
@@ -130,10 +141,52 @@ from typing import Dict, List, Optional, Set, Tuple  # noqa: F401
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
 
-# Maximum periods/week any single teacher (real or dummy/placeholder) may be
-# assigned. Raised from 19 to 21 — the workload ceiling used throughout the
-# allocation engine (weekly_load_ok, dummy-teacher packing, validation).
-MAX_WEEKLY_PERIODS = 21
+# ─────────────────────────────────────────────────────────────────────────────
+# Per-designation weekly teaching load caps
+# ─────────────────────────────────────────────────────────────────────────────
+# HODs:                              max 16 periods/week
+# Senior/Associate/Priority teachers: max 17 periods/week
+#   (Principal, Deputy Dean, Associate Professor)
+# Regular teachers:                  max 19 periods/week
+#   (Assistant Professor, Professor, Lecturer, and dummy/placeholder teachers)
+#
+# MAX_WEEKLY_PERIODS is kept as the highest possible cap (used as a sentinel
+# for dummy teachers and anywhere a single upper bound is needed).
+MAX_WEEKLY_PERIODS = 19  # highest real-teacher cap; also used for dummies
+
+# Designations that belong to the "senior" tier (17 periods/week)
+_SENIOR_DESIGNATIONS: frozenset = frozenset({
+    'Designation.PRINCIPAL',
+    'Designation.DEPUTY_DEAN',
+    'Designation.ASSOCIATE_PROF',
+})
+
+
+def _max_periods_for_teacher(teacher: "Teacher") -> int:
+    """
+    Return the weekly period cap for a teacher based on their designation.
+
+      HOD (Head of Department) : 16 periods/week
+      Senior tier              : 17 periods/week
+        (Principal, Deputy Dean, Associate Professor)
+      Regular tier             : 19 periods/week
+        (Assistant Professor, Professor, Lecturer,
+         or any dummy/placeholder teacher)
+    """
+    # Dummy teachers get the regular cap
+    if getattr(teacher, 'is_dummy', False):
+        return 19
+    desig = getattr(teacher, 'designation', None)
+    if desig is None:
+        return 19
+    # HOD
+    if desig.value == 'HOD':
+        return 16
+    # Senior tier: Principal, Deputy Dean, Associate Professor
+    if desig.value in ('Principal', 'Deputy Dean', 'Associate Professor'):
+        return 17
+    # Regular: Assistant Professor, Professor, Lecturer
+    return 19
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -199,13 +252,14 @@ def _multi_teacher_count(subj: "Subject") -> int:
 # after _CROSS_ENGINE_EXPIRE_SECONDS so stale state from a previous run on a
 # long-lived server does not affect a new generation.
 #
-# All five flag names are listed here so they can be looped over uniformly:
+# All flag names are listed here so they can be looped over uniformly:
 _ALL_ADDITIONAL_FLAGS: Tuple[str, ...] = (
     'project_phase_assigned',
     'seminar_assigned',
     'miniproject_assigned',
-    'ccw_assigned',       # NEW — was missing, caused duplicate CCW assignments
-    'y2p_assigned',       # NEW — was missing, caused duplicate Y2P assignments
+    'ccw_assigned',           # was missing, caused duplicate CCW assignments
+    'y2p_assigned',           # was missing, caused duplicate Y2P assignments
+    'lab_or_extra_assigned',  # NEW — combined Lab/Project/Seminar slot flag
 )
 
 # {teacher_id: set_of_flag_names_that_are_True}
@@ -335,7 +389,8 @@ class Teacher:
     priority_subjects: List[Tuple[str, int]] = field(default_factory=list)
     specializations:  List[str] = field(default_factory=list)
     assigned_load:    Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    # Tracks actual periods used this semester (LTPR-based). Must stay <= MAX_WEEKLY_PERIODS.
+    # Tracks actual periods used this semester (LTPR-based).
+    # Must stay <= _max_periods_for_teacher(self).
     weekly_periods_used: int = 0
     # True for BSH (Basic Sciences & Humanities) teachers — service dept.
     is_bsh:           bool = False
@@ -351,6 +406,15 @@ class Teacher:
     ccw_assigned:            bool = field(default=False)
     y2p_assigned:            bool = field(default=False)
 
+    # ── Combined Lab/Project/Seminar slot tracking ────────────────────────────
+    # A teacher may hold at most 3 subjects in total:
+    #   • 2 Core Theory subjects, AND
+    #   • 1 Lab  OR  1 Project  OR  1 Seminar  (only ONE of these)
+    # This flag is set to True the first time the teacher receives any one of
+    # Lab / Project-type / Seminar / Mini-Project assignments.  When True the
+    # teacher cannot receive any further Lab, Project or Seminar assignment.
+    lab_or_extra_assigned: bool = field(default=False)
+
     # ── Non-BSH subject uniqueness tracking ──────────────────────────────────
     # Records the subject_ids already assigned as theory to this teacher.
     # For non-BSH teachers, the same subject_id must NOT appear in more than
@@ -361,6 +425,10 @@ class Teacher:
 
     def get_total_load(self) -> int:
         return self.assigned_load.get('theory', 0) + self.assigned_load.get('lab', 0)
+
+    def max_weekly_periods(self) -> int:
+        """Return the designation-specific weekly period cap for this teacher."""
+        return _max_periods_for_teacher(self)
 
     def can_take_theory(self) -> bool:
         """
@@ -388,11 +456,23 @@ class Teacher:
         return subject_id not in self.assigned_theory_subject_ids
 
     def can_take_lab(self) -> bool:
+        """Check if this teacher can take a Lab assignment.
+        Enforces the combined Lab/Project/Seminar slot limit (max 1 total).
+        """
+        if self.lab_or_extra_assigned:
+            return False
         return self.assigned_load.get('lab', 0) < 1
 
+    def can_take_extra_subject(self) -> bool:
+        """Check if this teacher can take a Project/Seminar/MiniProject assignment.
+        Enforces the combined Lab/Project/Seminar slot limit (max 1 total).
+        """
+        return not self.lab_or_extra_assigned
+
     def weekly_load_ok(self, extra_periods: int = 1) -> bool:
-        """Check whether adding extra_periods keeps weekly total <= MAX_WEEKLY_PERIODS."""
-        return self.weekly_periods_used + extra_periods <= MAX_WEEKLY_PERIODS
+        """Check whether adding extra_periods keeps weekly total within the
+        designation-specific cap (_max_periods_for_teacher)."""
+        return self.weekly_periods_used + extra_periods <= _max_periods_for_teacher(self)
 
 
 @dataclass
@@ -1001,6 +1081,9 @@ class SubjectAssignmentEngine:
                         main_teacher.assigned_load.get('lab', 0) + 1
                     )
                     main_teacher.weekly_periods_used += lab.periods_per_week
+                    # Consume the combined Lab/Project/Seminar slot so this
+                    # teacher cannot also receive a project or seminar.
+                    main_teacher.lab_or_extra_assigned = True
                     if is_bsh_lab and bsh_main is None:
                         bsh_main = main_teacher
 
@@ -1112,8 +1195,12 @@ class SubjectAssignmentEngine:
 
         Rules enforced:
           • These subjects do NOT count against the 2-theory + 1-lab limit.
-          • WORKLOAD RULE: Only assign to teachers whose weekly_periods_used < MAX_WEEKLY_PERIODS.
-            The purpose of these assignments is to fill each teacher's load to MAX_WEEKLY_PERIODS.
+          • WORKLOAD RULE: Only assign to teachers whose weekly_periods_used is
+            below their designation-specific cap (_max_periods_for_teacher).
+          • COMBINED EXTRA-SLOT CAP: A teacher may only receive ONE of the
+            following across ALL subjects — Lab, Project Phase, Seminar, Mini
+            Project.  Teachers whose lab_or_extra_assigned flag is already True
+            are excluded from Phase/Seminar/MiniProject assignment.
           • Multi-supervised subjects receive the required number of teachers:
               Project Phase 1/2 → up to 5 teachers
               Seminar           → up to 5 (1 main + up to 4 co-supervisors)
@@ -1144,23 +1231,44 @@ class SubjectAssignmentEngine:
             divisions = self._get_relevant_divisions(subj)
             flag      = self._additional_flag(subj)
 
-            # Only teachers whose current weekly load is BELOW MAX_WEEKLY_PERIODS should receive
-            # additional assignments — the purpose is to fill their workload.
-            raw_eligible = self._get_eligible_teachers(subj)
-            under_loaded = [t for t in raw_eligible if t.weekly_periods_used < MAX_WEEKLY_PERIODS]
+            # Determine if this subject counts as the combined Lab/Extra slot.
+            # Project Phase, Seminar, and Mini Project each consume the single
+            # Lab/Project/Seminar slot a teacher may hold.
+            is_extra_slot_subject = bool(
+                'project phase' in subj.name.lower()
+                or 'seminar' in subj.name.lower()
+                or 'mini project' in subj.name.lower()
+                or 'miniproject' in subj.name.lower()
+            )
 
-            # Also filter out teachers who already hold this type of additional duty
+            # Only teachers whose current weekly load is below their designation
+            # cap should receive additional assignments.
+            raw_eligible = self._get_eligible_teachers(subj)
+            under_loaded = [
+                t for t in raw_eligible
+                if t.weekly_periods_used < _max_periods_for_teacher(t)
+            ]
+
+            # Filter out teachers who already hold this type of additional duty
             if flag:
                 eligible = [t for t in under_loaded if not getattr(t, flag, False)]
             else:
                 eligible = under_loaded
 
-            # Fall back to all eligible (any load) if nobody is under MAX_WEEKLY_PERIODS — rare
+            # For subjects that consume the combined Lab/Extra slot, also
+            # exclude teachers who already have a Lab or other extra-slot subject.
+            if is_extra_slot_subject:
+                eligible = [t for t in eligible if t.can_take_extra_subject()]
+
+            # Fall back to all eligible (any load) if nobody is under cap — rare
             if not eligible:
                 if flag:
                     eligible = [t for t in raw_eligible if not getattr(t, flag, False)]
                 else:
                     eligible = list(raw_eligible)
+                # Reapply extra-slot filter even on fallback pool
+                if is_extra_slot_subject:
+                    eligible = [t for t in eligible if t.can_take_extra_subject()]
 
             if not divisions:
                 log.warning("Additional subject %s: no divisions found — skipping", subj.name)
@@ -1171,9 +1279,12 @@ class SubjectAssignmentEngine:
 
             if count > 1:
                 self._assign_multi_teacher_additional(
-                    subj, count, divisions, eligible, extra_load, flag)
+                    subj, count, divisions, eligible, extra_load, flag,
+                    is_extra_slot_subject=is_extra_slot_subject)
             else:
-                self._assign_single_additional(subj, divisions, eligible, extra_load, flag)
+                self._assign_single_additional(
+                    subj, divisions, eligible, extra_load, flag,
+                    is_extra_slot_subject=is_extra_slot_subject)
 
         return dict(extra_load)
 
@@ -1185,6 +1296,7 @@ class SubjectAssignmentEngine:
         eligible:     List[Teacher],
         extra_load:   Dict[str, int],
         flag:         str = '',
+        is_extra_slot_subject: bool = False,
     ) -> None:
         """
         Assign *num_teachers* teachers to a multi-supervised subject.
@@ -1195,21 +1307,24 @@ class SubjectAssignmentEngine:
         not independently produce a separate timetable block.
 
         WORKLOAD-FILLING RULE (Rule 8):
-          Teachers whose weekly total is < MAX_WEEKLY_PERIODS are preferred (they need extra
-          duties to reach their workload).  Among teachers with the same
-          workload situation, those with fewer additional duties are preferred
-          so that the extra responsibilities are spread evenly.
+          Teachers whose weekly total is below their designation-specific cap
+          are preferred (they need extra duties to reach their workload).
+          Among teachers with the same workload situation, those with fewer
+          additional duties are preferred so that the extra responsibilities
+          are spread evenly.
 
         flag: if non-empty, the Teacher attribute to set True after assignment
               so the same teacher cannot be assigned this type again.
+        is_extra_slot_subject: if True, set lab_or_extra_assigned=True on
+              each selected teacher (consumes their combined Lab/Extra slot).
         """
-        # Prefer teachers with weekly_periods_used < MAX_WEEKLY_PERIODS (need more work) first.
+        # Prefer teachers below their designation cap first.
         # Within that group, sort by fewest additional duties, then lightest load,
         # then seniority (senior first).
         ranked = sorted(
             eligible,
             key=lambda t: (
-                0 if t.weekly_periods_used < MAX_WEEKLY_PERIODS else 1,   # under-loaded first
+                0 if t.weekly_periods_used < _max_periods_for_teacher(t) else 1,  # under-loaded first
                 extra_load[t.teacher_id],                  # fewest additional duties
                 t.get_total_load(),                        # lighter main-subject load
                 t.seniority_level if t.seniority_level is not None else 999,
@@ -1234,6 +1349,11 @@ class SubjectAssignmentEngine:
             for teacher in selected:
                 setattr(teacher, flag, True)
 
+        # Mark the combined Lab/Extra slot as consumed for each selected teacher.
+        if is_extra_slot_subject:
+            for teacher in selected:
+                teacher.lab_or_extra_assigned = True
+
     def _assign_single_additional(
         self,
         subj:       Subject,
@@ -1241,19 +1361,23 @@ class SubjectAssignmentEngine:
         eligible:   List[Teacher],
         extra_load: Dict[str, int],
         flag:       str = '',
+        is_extra_slot_subject: bool = False,
     ) -> None:
         """
         Assign exactly one teacher to a single-supervised additional subject
-        (Y2P, etc.).  Prefers teachers with weekly load < MAX_WEEKLY_PERIODS (workload-filling
-        rule) and fewest existing additional duties to spread the load.
+        (Y2P, etc.).  Prefers teachers below their designation cap
+        (workload-filling rule) and fewest existing additional duties to
+        spread the load.
 
         flag: if non-empty, set this Teacher attribute to True after assignment
               so the teacher cannot be assigned this type again.
+        is_extra_slot_subject: if True, set lab_or_extra_assigned=True on the
+              selected teacher (consumes their combined Lab/Extra slot).
         """
         ranked = sorted(
             eligible,
             key=lambda t: (
-                0 if t.weekly_periods_used < MAX_WEEKLY_PERIODS else 1,   # under-loaded first (Rule 8)
+                0 if t.weekly_periods_used < _max_periods_for_teacher(t) else 1,  # under-loaded first (Rule 8)
                 extra_load[t.teacher_id],                  # fewest additional duties
                 t.get_total_load(),                        # lighter main subject load
                 -DESIGNATION_SENIORITY.get(t.designation, 99),  # junior first (tiebreaker)
@@ -1266,6 +1390,9 @@ class SubjectAssignmentEngine:
         # Mark teacher so they cannot be assigned this type again
         if flag:
             setattr(teacher, flag, True)
+        # Mark the combined Lab/Extra slot as consumed
+        if is_extra_slot_subject:
+            teacher.lab_or_extra_assigned = True
         log.info("  ✓ %s → %s [additional, single]", subj.name, teacher.name)
 
     def _get_lab_companion_teacher(self, lab: Subject, div: Division) -> Optional[Teacher]:
@@ -1771,10 +1898,15 @@ class SubjectAssignmentEngine:
         Bin-pack every unassigned (subject, division) pair into dummy
         teachers (X1, X2, X3...), keeping their workloads as evenly
         distributed as possible rather than maxing out one dummy before
-        starting the next. Each dummy is capped at MAX_WEEKLY_PERIODS/week
-        and the same 2-theory + 1-lab load limit as real teachers, and is
-        otherwise scheduled exactly like a real teacher (same downstream
-        placement logic in the timetable generator).
+        starting the next.
+
+        Dummy teachers are only created when no real teacher could be
+        assigned due to reaching their teaching load limit (designation-based
+        weekly cap or subject allocation limit).  Each dummy is capped at
+        19 periods/week (the regular teacher cap) and the same
+        2-theory + 1-lab load limit as real teachers, and is otherwise
+        scheduled exactly like a real teacher (same downstream placement
+        logic in the timetable generator).
 
         As many dummies as needed are created — there is no cap on count —
         so every remaining (subject, division) pair is guaranteed a teacher.
@@ -1799,6 +1931,12 @@ class SubjectAssignmentEngine:
         if not unassigned:
             return []
 
+        log.info(
+            "_pack_dummies: %d unassigned (subject, division) pairs — "
+            "creating dummy (temporary) teachers to ensure full timetable coverage.",
+            len(unassigned),
+        )
+
         # Sort: labs first (least flexible to place), then theory by period
         # count descending — placing the biggest chunks first gives the
         # load-balancer the most room to spread work evenly.
@@ -1810,6 +1948,9 @@ class SubjectAssignmentEngine:
         dummies: List[Teacher] = []
         dummy_counter: Dict[str, int] = defaultdict(int)
         dummies_by_dept: Dict[str, List[Teacher]] = defaultdict(list)
+
+        # Dummy teachers use the regular teacher cap (19 periods/week).
+        _DUMMY_WEEKLY_CAP = 19
 
         def _new_dummy(dept_id: str) -> Teacher:
             dummy_counter[dept_id] += 1
@@ -1836,7 +1977,7 @@ class SubjectAssignmentEngine:
             candidates = [
                 d for d in dummies_by_dept.get(dept, [])
                 if d.assigned_load.get(load_key, 0) < cap
-                and d.weekly_load_ok(subj.periods_per_week)
+                and (d.weekly_periods_used + subj.periods_per_week) <= _DUMMY_WEEKLY_CAP
             ]
             target = (
                 min(candidates, key=lambda d: d.weekly_periods_used)
@@ -1851,7 +1992,7 @@ class SubjectAssignmentEngine:
             log.info(
                 "  Dummy %s ← %s (%s)  [weekly=%d/%d]",
                 target.teacher_id, subj.name, div.division_id,
-                target.weekly_periods_used, MAX_WEEKLY_PERIODS,
+                target.weekly_periods_used, _DUMMY_WEEKLY_CAP,
             )
 
         log.info("Dummy teachers created: %d", len(dummies))
@@ -1863,15 +2004,16 @@ class SubjectAssignmentEngine:
         modification of assignments. Raises AssertionError on violation (S13).
         """
         for t in changed_teachers:
-            theory = t.assigned_load.get('theory', 0)
-            lab    = t.assigned_load.get('lab', 0)
-            cap    = 3 if t.is_bsh else 2
+            theory    = t.assigned_load.get('theory', 0)
+            lab       = t.assigned_load.get('lab', 0)
+            cap       = 3 if t.is_bsh else 2
+            week_cap  = _max_periods_for_teacher(t)
             assert theory <= cap, \
                 f"{t.name}: theory_load={theory} > {cap}"
             assert lab <= 1, \
                 f"{t.name}: lab_load={lab} > 1"
-            assert t.weekly_periods_used <= MAX_WEEKLY_PERIODS, \
-                f"{t.name}: weekly_periods={t.weekly_periods_used} > {MAX_WEEKLY_PERIODS}"
+            assert t.weekly_periods_used <= week_cap, \
+                f"{t.name}: weekly_periods={t.weekly_periods_used} > {week_cap} (designation cap)"
             # Non-BSH: unique subjects count must match theory load
             if not t.is_bsh:
                 assert len(t.assigned_theory_subject_ids) <= cap, \
@@ -1894,13 +2036,15 @@ def validate_before_timetable(
     """
     errors: List[str] = []
 
-    # 1. Weekly workload
+    # 1. Weekly workload — checked against each teacher's designation-specific cap
     for t in teachers:
         if getattr(t, 'is_dummy', False):
             continue
-        if t.weekly_periods_used > MAX_WEEKLY_PERIODS:
+        week_cap = _max_periods_for_teacher(t)
+        if t.weekly_periods_used > week_cap:
             errors.append(
-                f"{t.name}: weekly_periods={t.weekly_periods_used} > {MAX_WEEKLY_PERIODS}"
+                f"{t.name}: weekly_periods={t.weekly_periods_used} > {week_cap} "
+                f"(cap for {getattr(t.designation, 'value', '?')})"
             )
 
     # 2. Subject limits

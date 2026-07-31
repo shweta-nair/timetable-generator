@@ -1,8 +1,7 @@
 from flask import (Flask, render_template, redirect, url_for,
-                   request, flash, jsonify, session)
+                   request, flash, jsonify)
 from flask_login import (LoginManager, login_user, logout_user,
                          login_required, current_user)
-from werkzeug.security import generate_password_hash
 from database import (db, Department, Teacher, Course, TeacherPreference,
                       TeacherAuth, Timetable, SubjectAssignment,
                       Notification, PreferenceWindow, SystemSettings)
@@ -259,9 +258,6 @@ def register():
     return redirect(url_for('login'))
 
 import uuid
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from database import PasswordResetToken
 
@@ -506,6 +502,91 @@ def update_basic_details():
     return redirect(url_for('hod_profile') if is_hod() else url_for('teacher_profile'))
 
 
+# ══════════════════════════════════════════════════════════════
+# CONSOLIDATED TeacherPreference save/replace helper
+# ──────────────────────────────────────────────────────────────
+# Every route that lets a teacher (or an HOD editing on a teacher's
+# behalf) set their 3 subject preferences funnels through this one
+# function. It is the single place that:
+#   1. validates the submitted course codes (exist, distinct
+#      semesters, exactly 3),
+#   2. deletes the teacher's previous rows for the CURRENT semester
+#      group — matching legacy 'odd'/'even' string rows as well as
+#      numeric-string rows, so old-format rows never survive a
+#      resubmission, and
+#   3. inserts the new rows using the numeric-string storage
+#      standard (TeacherPreference.semester in {"1".."8"}).
+#
+# Previously five separate call sites each re-implemented this
+# logic slightly differently: several deleted only numeric-string
+# rows, leaving legacy 'odd'/'even' rows orphaned in the table —
+# the root cause of the HOD dashboard showing counts like "6/3"
+# instead of "3/3" after a teacher resubmitted. One call site
+# (the old /update-additional-details form) didn't save `semester`
+# at all. See migrate_teacher_preference_semester.py for the
+# one-time cleanup of rows created before this fix.
+# ══════════════════════════════════════════════════════════════
+def save_teacher_preferences(teacher, course_codes, sem_type):
+    """
+    Replace `teacher`'s subject preferences for the given semester
+    group ('odd' or 'even') with the (up to 3) course codes in
+    `course_codes`.
+
+    Returns (ok, message): ok=False + a user-facing flash string on
+    validation failure, ok=True + a success flash string otherwise.
+    Semester is ALWAYS stored numerically (str(course.semester)) —
+    never as the literal 'odd'/'even'.
+    """
+    valid_sems = [1, 3, 5, 7] if sem_type == 'odd' else [2, 4, 6, 8]
+
+    codes = [c.strip() for c in course_codes if c and c.strip()]
+    if len(codes) < 3:
+        return False, 'Please select all 3 preferences.'
+    if len(set(codes)) != len(codes):
+        return False, 'Duplicate subjects are not allowed.'
+
+    courses = []
+    sems_chosen = []
+    for code in codes:
+        course = Course.query.filter_by(code=code).first()
+        if not course:
+            return False, f'Course "{code}" not found.'
+        courses.append(course)
+        sems_chosen.append(course.semester)
+
+    if len(set(sems_chosen)) < 3:
+        return False, 'All 3 preferences must be from 3 different semesters.'
+
+    # Delete every existing row for this teacher that belongs to the
+    # CURRENT semester group, regardless of which format (legacy
+    # literal or numeric string) it happens to be stored in. Matching
+    # both teacher_id and teacher_code also catches legacy rows saved
+    # with teacher_id NULL. This is what guarantees "exactly three
+    # preferences remain" after every submission, with no duplicates
+    # and no orphaned legacy rows left behind.
+    numeric_strs = [str(s) for s in valid_sems]
+    TeacherPreference.query.filter(
+        (TeacherPreference.teacher_id == teacher.id) |
+        (TeacherPreference.teacher_code == teacher.code),
+        TeacherPreference.semester.in_(numeric_strs + [sem_type])
+    ).delete(synchronize_session=False)
+    db.session.flush()
+
+    from datetime import datetime
+    now = datetime.utcnow()
+    for rank, course in enumerate(courses, start=1):
+        db.session.add(TeacherPreference(
+            teacher_id=teacher.id,
+            teacher_code=teacher.code,
+            course_code=course.code,
+            semester=str(course.semester),
+            rank=rank,
+            created_at=now,
+        ))
+    db.session.commit()
+    return True, 'Preferences saved successfully!'
+
+
 @app.route('/update-additional-details', methods=['POST'])
 @login_required
 def update_additional_details():
@@ -521,25 +602,26 @@ def update_additional_details():
 
     teacher.experience = request.form.get('experience_current', '').strip()
     teacher.area_of_specialization = request.form.get('area_specialization', '').strip()
+    db.session.commit()
 
-    # Update subject preferences (delete old, insert new)
+    # Update subject preferences (delete old, insert new) — only if all
+    # 3 fields were actually submitted from this form. This form predates
+    # the semester-aware preference system; when used, it now goes
+    # through the same save_teacher_preferences() helper as every other
+    # preference-submission route so semester is always stored
+    # numerically and no legacy/duplicate rows are left behind.
     pref_codes = [
         request.form.get('subject_pref_1', '').strip(),
         request.form.get('subject_pref_2', '').strip(),
         request.form.get('subject_pref_3', '').strip(),
     ]
-    TeacherPreference.query.filter_by(teacher_id=teacher.id).delete()
-    for rank, code in enumerate(pref_codes, start=1):
-        if code:
-            db.session.add(TeacherPreference(
-                teacher_id=teacher.id,
-                teacher_code=teacher.code,
-                course_code=code,
-                rank=rank,
-            ))
+    if any(pref_codes):
+        sem_type = SystemSettings.get('active_semester_type', 'odd')
+        ok, message = save_teacher_preferences(teacher, pref_codes, sem_type)
+        flash(message, 'success' if ok else 'error')
+    else:
+        flash('Additional details updated.', 'success')
 
-    db.session.commit()
-    flash('Additional details updated.', 'success')
     return redirect(url_for('hod_profile') if is_hod() else url_for('teacher_profile'))
 
 
@@ -824,47 +906,8 @@ def teacher_preferences():
             request.form.get('pref_2', '').strip(),
             request.form.get('pref_3', '').strip(),
         ]
-        codes = [c for c in codes if c]
-        if len(codes) < 3:
-            flash('Please select all 3 preferences.', 'error')
-            return redirect(url_for('teacher_preferences'))
-
-        # Validate that all 3 preferences are from DIFFERENT semesters
-        sems_chosen = []
-        codes_data = []
-        for code in codes:
-            c_obj = Course.query.filter_by(code=code).first()
-            if not c_obj:
-                flash(f'Course "{code}" not found.', 'error')
-                return redirect(url_for('teacher_preferences'))
-            sems_chosen.append(c_obj.semester)
-            codes_data.append({'code': code, 'semester': c_obj.semester})
-
-        if len(set(sems_chosen)) < 3:
-            flash('All 3 preferences must be from 3 different semesters.', 'error')
-            return redirect(url_for('teacher_preferences'))
-
-        # IMPORTANT: delete by BOTH teacher_id and teacher_code.
-        # Legacy data may have teacher_id NULL but teacher_code populated; the
-        # assignment engine loads prefs by (teacher_id OR teacher_code).
-        TeacherPreference.query.filter(
-            (TeacherPreference.teacher_id == teacher.id) |
-            (TeacherPreference.teacher_code == teacher.code),
-            TeacherPreference.semester.in_([str(s) for s in valid_sems])
-        ).delete(synchronize_session=False)
-        from datetime import datetime
-        now = datetime.utcnow()
-        for rank, data in enumerate(codes_data, start=1):
-            db.session.add(TeacherPreference(
-                teacher_id=teacher.id,
-                teacher_code=teacher.code,
-                course_code=data['code'],
-                semester=data['semester'],
-                rank=rank,
-                created_at=now
-            ))
-        db.session.commit()
-        flash('Preferences saved successfully!', 'success')
+        ok, message = save_teacher_preferences(teacher, codes, sem_type)
+        flash(message, 'success' if ok else 'error')
         return redirect(url_for('teacher_preferences'))
 
     return render_template('teacher_preferences.html',
@@ -3486,13 +3529,15 @@ def hod_update_teacher_preference(teacher_id):
         flash("You cannot edit another department's teacher preferences.", "error")
         return redirect(url_for("hod_preference_window"))
 
-    # Current semester type
-    sem_type = SystemSettings.get("active_semester_type", "odd")
-
-    if sem_type == "odd":
-        valid_semesters = ["1", "3", "5", "7"]
-    else:
-        valid_semesters = ["2", "4", "6", "8"]
+    # Which semester group is being edited. The HOD edit panel has
+    # separate Odd/Even tabs, each posting its own hidden `sem_type`
+    # field — that must be honored rather than always falling back to
+    # the globally-active semester type, or editing a teacher's Even
+    # preferences while Odd is the globally-active window would
+    # delete/insert against the wrong semester group.
+    sem_type = request.form.get("sem_type") or SystemSettings.get("active_semester_type", "odd")
+    if sem_type not in ("odd", "even"):
+        sem_type = "odd"
 
     # Read submitted preferences
     pref_codes = [
@@ -3501,46 +3546,17 @@ def hod_update_teacher_preference(teacher_id):
         request.form.get("pref_3", "").strip(),
     ]
 
-    pref_codes = [p for p in pref_codes if p]
-
     # No duplicate subjects
-    if len(pref_codes) != len(set(pref_codes)):
+    non_empty = [p for p in pref_codes if p]
+    if len(non_empty) != len(set(non_empty)):
         flash("Duplicate subjects are not allowed.", "error")
         return redirect(url_for("hod_preference_window"))
 
-    # Delete existing preferences for this semester type
-    old = TeacherPreference.query.filter_by(teacher_id=teacher.id).all()
-
-    for p in old:
-        if str(p.semester) in valid_semesters:
-            db.session.delete(p)
-
-    db.session.flush()
-
-    # Insert new preferences
-    for rank, code in enumerate(pref_codes, start=1):
-
-        course = Course.query.filter_by(code=code).first()
-
-        if not course:
-            continue
-
-        db.session.add(
-            TeacherPreference(
-                teacher_id=teacher.id,
-                teacher_code=teacher.code,
-                course_code=course.code,
-                semester=course.semester,
-                rank=rank,
-            )
-        )
-
-    db.session.commit()
-
-    flash(
-        f"Preferences updated successfully for {teacher.name}.",
-        "success"
-    )
+    ok, message = save_teacher_preferences(teacher, pref_codes, sem_type)
+    if ok:
+        flash(f"Preferences updated successfully for {teacher.name}.", "success")
+    else:
+        flash(message, "error")
 
     return redirect(url_for("hod_preference_window"))
 
@@ -4234,43 +4250,8 @@ def hod_my_preferences():
             request.form.get('pref_2', '').strip(),
             request.form.get('pref_3', '').strip(),
         ]
-        codes = [c for c in codes if c]
-        if len(codes) < 3:
-            flash('Please select all 3 preferences.', 'error')
-            return redirect(url_for('hod_my_preferences'))
-
-        sems_chosen = []
-        codes_data = []
-        for code in codes:
-            c_obj = Course.query.filter_by(code=code).first()
-            if not c_obj:
-                flash(f'Course "{code}" not found.', 'error')
-                return redirect(url_for('hod_my_preferences'))
-            sems_chosen.append(c_obj.semester)
-            codes_data.append({'code': code, 'semester': c_obj.semester})
-
-        if len(set(sems_chosen)) < 3:
-            flash('All 3 preferences must be from 3 different semesters.', 'error')
-            return redirect(url_for('hod_my_preferences'))
-
-        from datetime import datetime as _dt
-        TeacherPreference.query.filter(
-            (TeacherPreference.teacher_id == teacher.id) |
-            (TeacherPreference.teacher_code == teacher.code),
-            TeacherPreference.semester.in_([str(s) for s in valid_sems])
-        ).delete(synchronize_session=False)
-
-        for rank, data in enumerate(codes_data, start=1):
-            db.session.add(TeacherPreference(
-                teacher_id=teacher.id,
-                teacher_code=teacher.code,
-                course_code=data['code'],
-                semester=data['semester'],
-                rank=rank,
-                created_at=_dt.utcnow(),
-            ))
-        db.session.commit()
-        flash('Your preferences saved successfully!', 'success')
+        ok, message = save_teacher_preferences(teacher, codes, sem_type)
+        flash(message, 'success' if ok else 'error')
         return redirect(url_for('hod_my_preferences'))
 
     return render_template('hod_preference_window.html',
@@ -4436,55 +4417,19 @@ def update_preferences():
     sem_type = SystemSettings.get('active_semester_type', 'odd')
     sem_list  = [1, 3, 5, 7] if sem_type == 'odd' else [2, 4, 6, 8]
 
-    # Collect the 3 (course_code, semester) pairs submitted
-    selections = []
+    # Collect the submitted course codes. The form also posts a
+    # pref_sem_i hint per row, but the semester actually stored always
+    # comes from the course record itself (via save_teacher_preferences),
+    # so a stale/mismatched hint can't desync what's saved from what the
+    # course actually is.
+    codes = []
     for i in range(1, 4):
         code = request.form.get(f'pref_code_{i}', '').strip()
-        sem  = request.form.get(f'pref_sem_{i}', '').strip()
-        if code and sem:
-            try:
-                sem_int = int(float(sem))
-            except ValueError:
-                continue
-            if sem_int in sem_list:
-                selections.append((code, sem_int))
+        if code:
+            codes.append(code)
 
-    # Validate: each semester must be unique
-    sems_chosen = [s for _, s in selections]
-    if len(sems_chosen) != len(set(sems_chosen)):
-        flash('Each preference must be from a different semester.', 'error')
-        return redirect(url_for('teacher_profile'))
-
-    # Validate course codes exist
-    valid = []
-    for code, sem_int in selections:
-        course = Course.query.filter_by(code=code).first()
-        if not course:
-            flash(f'Course code "{code}" not found.', 'error')
-            return redirect(url_for('teacher_profile'))
-        valid.append((code, sem_int))
-
-    # Delete old prefs for this sem_type and re-insert.
-    # Delete by BOTH teacher_id and teacher_code to avoid stale legacy rows.
-    TeacherPreference.query.filter(
-        (TeacherPreference.teacher_id == teacher.id) |
-        (TeacherPreference.teacher_code == teacher.code),
-        TeacherPreference.semester.in_([str(s) for s in sem_list])
-    ).delete(synchronize_session=False)
-
-    for rank, (code, sem_int) in enumerate(valid, start=1):
-        from datetime import datetime
-        db.session.add(TeacherPreference(
-            teacher_id=teacher.id,
-            teacher_code=teacher.code,
-            course_code=code,
-            rank=rank,
-            semester=str(sem_int),
-            created_at=datetime.utcnow(),
-        ))
-
-    db.session.commit()
-    flash('Subject preferences saved successfully.', 'success')
+    ok, message = save_teacher_preferences(teacher, codes, sem_type)
+    flash(message, 'success' if ok else 'error')
     return redirect(url_for('teacher_profile'))
 
 
